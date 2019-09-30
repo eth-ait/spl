@@ -2,9 +2,9 @@ import numpy as np
 import quaternion
 import cv2
 
-from smpl import sparse_to_full
-from smpl import SMPL_PARENTS
-from smpl import SMPL_MAJOR_JOINTS
+from visualization.smpl import sparse_to_full
+from visualization.smpl import SMPL_PARENTS
+from visualization.smpl import SMPL_MAJOR_JOINTS
 
 
 # this comes from Martinez' preprocessing, does not take into account root position
@@ -15,7 +15,7 @@ H36M_PARENTS = [-1, 0, 1, 2, 3, 4, 0, 6, 7, 8, 9, 0, 11, 12, 13, 14, 12,
                 16, 17, 18, 19, 20, 19, 22, 12, 24, 25, 26, 27, 28, 27, 30]
 
 
-def local_rot_to_global(joint_angles, parents, rep="rot_mat", left_mult=False):
+def local_rot_to_global(joint_angles, parents, rep="rotmat", left_mult=False):
     """
     Converts local rotations into global rotations by "unrolling" the kinematic chain.
     Args:
@@ -27,9 +27,9 @@ def local_rot_to_global(joint_angles, parents, rep="rot_mat", left_mult=False):
     Returns:
         The global rotations as an np array of rotation matrices in format (N, nr_joints, 3, 3)
     """
-    assert rep in ["rot_mat", "quat", "aa"]
+    assert rep in ["rotmat", "quat", "aa"]
     n_joints = len(parents)
-    if rep == "rot_mat":
+    if rep == "rotmat":
         rots = np.reshape(joint_angles, [-1, n_joints, 3, 3])
     elif rep == "quat":
         rots = quaternion.as_rotation_matrix(quaternion.from_float_array(
@@ -134,14 +134,14 @@ class ForwardKinematics(object):
         aa = quaternion.as_rotation_matrix(qs)
         return self.fk(np.reshape(aa, [-1, H36M_NR_JOINTS * 3]))
 
-    def from_sparse(self, joint_angles_sparse, rep="rot_mat", return_sparse=True):
+    def from_sparse(self, joint_angles_sparse, rep="rotmat", return_sparse=True):
         """
         Get joint positions from reduced set of H36M joints.
         Args:
             joint_angles_sparse: np array of shape (N, len(sparse_joint_idxs) * dof))
             sparse_joints_idxs: List of indices into `H36M_JOINTS` pointing out which SMPL joints are used in
               `pose_sparse`. If None defaults to `H36M_MAJOR_JOINTS`.
-            rep: "rot_mat" or "quat", which representation is used for the angles in `joint_angles_sparse`
+            rep: "rotmat" or "quat", which representation is used for the angles in `joint_angles_sparse`
             return_sparse: If True it will return only the positions of the joints given in `sparse_joint_idxs`.
 
         Returns:
@@ -149,7 +149,7 @@ class ForwardKinematics(object):
             otherwise (N, H36M_NR_JOINTS, 3).
         """
         assert self.major_joints is not None
-        assert rep in ["rot_mat", "quat", "aa"]
+        assert rep in ["rotmat", "quat", "aa"]
         smpl_full = sparse_to_full(joint_angles_sparse, self.major_joints, self.n_joints, rep)
         fk_func = self.from_quat if rep == "quat" else self.from_aa if rep == "aa" else self.from_rotmat
         positions = fk_func(smpl_full)
@@ -252,7 +252,7 @@ def _test_h36m_fk():
     sample = np.reshape(sample, [-1, H36M_NR_JOINTS, 3])[:, H36M_MAJOR_JOINTS]
     positions = h36m.from_sparse(np.reshape(sample, [-1, len(H36M_MAJOR_JOINTS)*3]), rep="aa", return_sparse=False)
 
-    from render import visualize_positions
+    from visualization.render import visualize_positions
     positions = positions[:, :, [0, 2, 1]]  # swap y and z
     visualize_positions([positions], ['b'], ['test'], 'test', H36M_PARENTS)
 
@@ -264,14 +264,14 @@ def _test_smpl_fk():
         data = pkl.load(f, encoding='latin1')
         poses = np.array(data['poses'])  # shape (seq_length, 135)
         smpl_fk = SMPLForwardKinematics()
-        positions = smpl_fk.from_sparse(poses, rep="rot_mat", return_sparse=False)
+        positions = smpl_fk.from_sparse(poses, rep="rotmat", return_sparse=False)
 
         # from smpl import SMPLForwardKinematicsNP
         # smpl_fk2 = SMPLForwardKinematicsNP("C:\\Users\\manuel\\projects\\motion-modelling\\external\\smpl_py3\\models\\basicModel_f_lbs_10_207_0_v1.0.0.pkl")
-        # positions2 = smpl_fk2.from_sparse(poses, SMPL_MAJOR_JOINTS, rep="rot_mat", return_sparse=False)
+        # positions2 = smpl_fk2.from_sparse(poses, SMPL_MAJOR_JOINTS, rep="rotmat", return_sparse=False)
         # positions2 = positions2[:, :, [0, 2, 1]]  # swap y and z
 
-        from render import visualize_positions
+        from visualization.render import visualize_positions
         positions = positions[:, :, [0, 2, 1]]  # swap y and z
         visualize_positions([positions], ['b'], ['test'], 'test', SMPL_PARENTS)
 

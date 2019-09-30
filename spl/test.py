@@ -20,8 +20,10 @@ print("test")
 print(args.model_type)
 print(args.data_type)
 
+
 def main(_):
     pass
+
 
 if __name__ == "__main__":
     tf.app.run()

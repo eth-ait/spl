@@ -314,7 +314,7 @@ class MetricsEngine(object):
             target_lengths: List of target sequence lengths that should be evaluated.
             force_valid_rot: If True, the input rotation matrices might not be valid rotations and so it will find
               the closest rotation before computing the metrics.
-            rep: Which representation to use, "quat" or "rot_mat".
+            rep: Which representation to use, "quat" or "rotmat".
             which: Which metrics to compute. Options are [positional, joint_angle, pck, euler], defaults to all.
             pck_threshs: List of thresholds for PCK evaluations.
             is_sparse:  If True, `n_joints` is assumed to be 15, otherwise the full SMPL skeleton is assumed. If it is
@@ -330,7 +330,7 @@ class MetricsEngine(object):
         self.n_samples = 0
         self._should_call_reset = False  # a guard to avoid stupid mistakes
         self.rep = rep
-        assert self.rep in ["rot_mat", "quat", "aa"]
+        assert self.rep in ["rotmat", "quat", "aa"]
         assert is_sparse, "at the moment we expect sparse input; if that changes, " \
                           "the metrics values may not be comparable anymore"
 
@@ -431,8 +431,8 @@ class MetricsEngine(object):
 
         # add potentially missing joints
         if self.is_sparse:
-            pred = sparse_to_full(pred, self.fk_engine.major_joints, self.fk_engine.n_joints, rep="rot_mat")
-            targ = sparse_to_full(targ, self.fk_engine.major_joints, self.fk_engine.n_joints, rep="rot_mat")
+            pred = sparse_to_full(pred, self.fk_engine.major_joints, self.fk_engine.n_joints, rep="rotmat")
+            targ = sparse_to_full(targ, self.fk_engine.major_joints, self.fk_engine.n_joints, rep="rotmat")
 
         # make sure we don't consider the root orientation
         assert pred.shape[-1] == self.fk_engine.n_joints*dof
@@ -464,9 +464,9 @@ class MetricsEngine(object):
             elif metric == "joint_angle":
                 # compute the joint angle diff on the global rotations, not the local ones, which is a harder metric
                 pred_global = local_rot_to_global(pred, self.fk_engine.parents, left_mult=self.fk_engine.left_mult,
-                                                  rep="rot_mat")  # (-1, full_n_joints, 3, 3)
+                                                  rep="rotmat")  # (-1, full_n_joints, 3, 3)
                 targ_global = local_rot_to_global(targ, self.fk_engine.parents, left_mult=self.fk_engine.left_mult,
-                                                  rep="rot_mat")  # (-1, full_n_joints, 3, 3)
+                                                  rep="rotmat")  # (-1, full_n_joints, 3, 3)
                 v = angle_diff(pred_global[:, select_joints], targ_global[:, select_joints])  # (-1, n_joints)
                 v = np.reshape(v, [batch_size, seq_length, n_joints])
                 metrics[metric] = reduce_fn_np(v, axis=-1)
@@ -555,7 +555,7 @@ class MetricsEngine(object):
             of shape (n, seq_length). `reduce_fn` is only applied to metrics where it makes sense, i.e. not to PCK
             and euler angle differences.
         """
-        if self.rep == "rot_mat":
+        if self.rep == "rotmat":
             return self.compute_rotmat(predictions, targets, reduce_fn)
         elif self.rep == "quat":
             return self.compute_quat(predictions, targets, reduce_fn)

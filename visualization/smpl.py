@@ -6,7 +6,7 @@ import cv2
 
 import sys
 
-from tf_rot_conversions import quat2rotmat, aa2rotmat
+from common.tf_rot_conversions import quat2rotmat, aa2rotmat
 
 try:
     sys.path.append('../external/smpl_py3')
@@ -27,7 +27,7 @@ SMPL_JOINT_MAPPING = {i: x for i, x in enumerate(SMPL_JOINTS)}
 # TODO(kamanuel) make this compatible with `ForwardKinematics` class in `fk.py`
 
 
-def sparse_to_full(joint_angles_sparse, sparse_joints_idxs, tot_nr_joints, rep="rot_mat"):
+def sparse_to_full(joint_angles_sparse, sparse_joints_idxs, tot_nr_joints, rep="rotmat"):
     """
     Pad the given sparse joint angles with identity elements to retrieve a full skeleton with `tot_nr_joints`
     many joints.
@@ -36,14 +36,14 @@ def sparse_to_full(joint_angles_sparse, sparse_joints_idxs, tot_nr_joints, rep="
           or (N, len(sparse_joints_idxs), dof)
         sparse_joints_idxs: A list of joint indices pointing into the full skeleton given by range(0, tot_nr_joints)
         tot_nr_jonts: Total number of joints in the full skeleton.
-        rep: Which representation is used, rot_mat or quat
+        rep: Which representation is used, rotmat or quat
 
     Returns:
         The padded joint angles as an array of shape (N, tot_nr_joints*dof)
     """
     joint_idxs = sparse_joints_idxs
-    assert rep in ["rot_mat", "quat", "aa"]
-    dof = 9 if rep == "rot_mat" else 4 if rep == "quat" else 3
+    assert rep in ["rotmat", "quat", "aa"]
+    dof = 9 if rep == "rotmat" else 4 if rep == "quat" else 3
     n_sparse_joints = len(sparse_joints_idxs)
     angles_sparse = np.reshape(joint_angles_sparse, [-1, n_sparse_joints, dof])
 
@@ -51,7 +51,7 @@ def sparse_to_full(joint_angles_sparse, sparse_joints_idxs, tot_nr_joints, rep="
     smpl_full = np.zeros(shape=[angles_sparse.shape[0], tot_nr_joints, dof])  # (N, tot_nr_joints, dof)
     if rep == "quat":
         smpl_full[..., 0] = 1.0
-    elif rep == "rot_mat":
+    elif rep == "rotmat":
         smpl_full[..., 0] = 1.0
         smpl_full[..., 4] = 1.0
         smpl_full[..., 8] = 1.0
@@ -117,21 +117,21 @@ class SMPLForwardKinematics(object):
         aa = quaternion.as_rotation_vector(qs)
         return self.fk(np.reshape(aa, [-1, SMPL_NR_JOINTS * 3]))
 
-    def from_sparse(self, joint_angles_sparse, sparse_joints_idxs=None, rep="rot_mat", return_sparse=True):
+    def from_sparse(self, joint_angles_sparse, sparse_joints_idxs=None, rep="rotmat", return_sparse=True):
         """
         Get joint positions from reduced set of SMPL joints.
         Args:
             joint_angles_sparse: np array of shape (N, len(sparse_joint_idxs) * dof))
             sparse_joints_idxs: List of indices into `SMPL_JOINTS` pointing out which SMPL joints are used in
               `pose_sparse`. If None defaults to `SMPL_MAJOR_JOINTS`.
-            rep: "rot_mat" or "quat", which representation is used for the angles in `joint_angles_sparse`
+            rep: "rotmat" or "quat", which representation is used for the angles in `joint_angles_sparse`
             return_sparse: if True it will return only the positions of the joints given in `sparse_joint_idxs`
 
         Returns:
             The joint positions as an array of shape (N, len(sparse_joint_idxs), 3) if `return_sparse` is True
             otherwise (N, SMPL_NR_JOINTS, 3).
         """
-        assert rep in ["rot_mat", "quat"]
+        assert rep in ["rotmat", "quat"]
         joint_idxs = sparse_joints_idxs if sparse_joints_idxs is not None else SMPL_MAJOR_JOINTS
         smpl_full = sparse_to_full(joint_angles_sparse, joint_idxs, SMPL_NR_JOINTS, rep)
         fk_func = self.from_quat if rep == "quat" else self.from_rotmat
@@ -237,23 +237,23 @@ class SMPLForwardKinematicsTF(SMPLForwardKinematics):
         self.J = tf.constant(data['J'], dtype=tf.float32)
         self.parent_ids = data['kintree_table'][0].astype(int)
 
-    def from_sparse(self, joint_angles_sparse, sparse_joints_idxs=None, rep="rot_mat", return_sparse=True):
+    def from_sparse(self, joint_angles_sparse, sparse_joints_idxs=None, rep="rotmat", return_sparse=True):
         """
         Get joint positions from reduced set of SMPL joints.
         Args:
             joint_angles_sparse: np array of shape (N, len(sparse_joint_idxs) * dof))
             sparse_joints_idxs: List of indices into `SMPL_JOINTS` pointing out which SMPL joints are used in
               `pose_sparse`. If None defaults to `SMPL_MAJOR_JOINTS`.
-            rep: "rot_mat" or "quat", which representation is used for the angles in `joint_angles_sparse`
+            rep: "rotmat" or "quat", which representation is used for the angles in `joint_angles_sparse`
             return_sparse: if True it will return only the positions of the joints given in `sparse_joint_idxs`
 
         Returns:
             The joint positions as an array of shape (N, len(sparse_joint_idxs), 3) if `return_sparse` is True
             otherwise (N, SMPL_NR_JOINTS, 3).
         """
-        assert rep in ["quat", "rot_mat"]
+        assert rep in ["quat", "rotmat"]
         joint_idxs = sparse_joints_idxs if sparse_joints_idxs is not None else SMPL_MAJOR_JOINTS
-        dof = 9 if rep == "rot_mat" else 4
+        dof = 9 if rep == "rotmat" else 4
         n_sparse_joints = len(joint_idxs)
         pose_sparse_r = tf.reshape(joint_angles_sparse, [-1, n_sparse_joints, dof])
         batch_size = tf.shape(pose_sparse_r)[0]
@@ -408,7 +408,7 @@ def _test_smpl_fk():
     random_pose_rot_mat = np.reshape(random_pose_rot_mat, [-1, SMPL_NR_JOINTS*9])
     positions_rotmat = m.from_rotmat(random_pose_rot_mat)
 
-    from render import visualize_positions
+    from visualization.render import visualize_positions
     visualize_positions([positions, positions_quat, positions_rotmat], SMPL_PARENTS, overlay=True)
 
 
@@ -451,7 +451,7 @@ def _test_fk_sparse():
     pose_r = quaternion.as_rotation_matrix(quaternion.from_rotation_vector(pose_r))
     pose_r = np.reshape(pose_r, [n, -1])
     pose_r = tf.constant(pose_r, dtype=tf.float32)
-    tf_joints = tf_m.from_sparse(pose_r, rep="rot_mat", return_sparse=False)
+    tf_joints = tf_m.from_sparse(pose_r, rep="rotmat", return_sparse=False)
     with tf.Session() as sess:
         tf_jointse = sess.run(tf_joints)
         print(np.linalg.norm(smpl_poses - tf_jointse))
