@@ -4,7 +4,7 @@ import os
 import functools
 
 from common.constants import Constants as C
-from amass_tf import TFRecordMotionDataset
+from data.amass_tf import TFRecordMotionDataset
 
 
 class SRNNTFRecordMotionDataset(TFRecordMotionDataset):

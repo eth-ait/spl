@@ -44,18 +44,6 @@ class Constants(object):
     LRELU = 'lrelu'
     CLRELU = 'clrelu'  # Clamped leaky relu.
 
-    # Losses
-    NLL_BERNOULLI = 'nll_bernoulli'
-    NLL_NORMAL = 'nll_normal'
-    NLL_BINORMAL = 'nll_binormal'
-    NLL_GMM = 'nll_gmm'
-    NLL_BIGMM = 'nll_bigmm'
-    NLL_CENT = 'nll_cent'  # Cross-entropy.
-    NLL_CENT_BINARY = 'nll_cent_binary'  # Cross-entropy for binary outputs.
-    KLD = 'kld'
-    L1 = 'l1'
-    MSE = 'mse'
-
     # Reduce function types
     R_MEAN_STEP = 'mean_step_loss'  # Take average of average step loss per sample over batch. Uses sequence length.
     R_MEAN_SEQUENCE = 'mean_sequence_loss'  # Take average of sequence loss (summation of all steps) over batch. Uses sequence length.
@@ -65,17 +53,13 @@ class Constants(object):
     R_IDENTITY = 'identity'
 
     # Data representations
-    ROT_MATRIX = "rot_matrix"
-    ANGLE_AXIS = "angle_axis"
-    POSITIONAL = "positional"
-    QUATERNION = "quaternion"
+    ROT_MATRIX = "rotmat"
+    ANGLE_AXIS = "aa"
+    POSITIONAL = "pos"
+    QUATERNION = "quat"
 
     LAYER_FC = "fc"
     LAYER_RNN = "rnn"
-
-    DECAY_PC = "piecewise_constant"
-    DECAY_EXP = "exponential_decay"
-    DECAY_LINEAR = "linear_decay"
 
     LOSS_POSE_ALL_MEAN = "all_mean"
     LOSS_POSE_JOINT_SUM = "joint_sum"
@@ -91,9 +75,14 @@ class Constants(object):
     METRIC_PCK = "pck"
     METRIC_EULER_ANGLE = "euler"
     
-    # @ 60 Hz, in ms: 50, 83.3, 100, 166.7, 200, 300, 316.7, 400, 500, 566.7, 600, 1000
-    METRIC_TARGET_LENGTHS_AMASS = [3, 5, 6, 10, 12, 18, 19, 24, 30, 34, 36, 48, 60]
+    # @ 60 Hz, in ms: 50, 100, 200, 300, 400, 600, 800, 1000
+    METRIC_TARGET_LENGTHS_AMASS = [3, 6, 12, 18, 24, 36, 48, 60]
     METRIC_TARGET_LENGTHS_H36M = [4, 8, 16, 20, 28, 50]  # @ 50 Hz, in ms: [80, 160, 320, 400, 560, 1000]
     METRIC_TARGET_LENGTHS_H36M_25FPS = [2, 4, 8, 10, 14, 25]  # @ 25 Hz, in ms: [80, 160, 320, 400, 560, 1000]
     METRIC_PCK_THRESHS = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3]
+    
+    # Types of data windows.
+    DATA_WINDOW_BEGINNING = "from_beginning"
+    DATA_WINDOW_CENTER = "from_center"
+    DATA_WINDOW_RANDOM = "random"
 

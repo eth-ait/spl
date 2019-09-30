@@ -11,10 +11,10 @@ import quaternion
 import numpy as np
 import tensorflow as tf
 
-from model.zero_velocity import ASimpleYetEffectiveBaseline
+from common.constants import Constants as C
 from data.amass_tf import TFRecordMotionDataset
 from data.srnn_tf import SRNNTFRecordMotionDataset
-from common.constants import Constants as C
+from model.zero_velocity import ASimpleYetEffectiveBaseline
 
 from visualization.fk import H36MForwardKinematics
 from visualization.fk import SMPLForwardKinematics
@@ -26,6 +26,10 @@ from metrics.motion_metrics import aa2rotmat
 
 
 tf.app.flags.DEFINE_string("experiment_id", None, "Unique experiment id to restore an existing model.")
+tf.app.flags.DEFINE_string("data_dir", None,
+                           "Path to data. If not passed, then AMASS_DATA environment variable is used.")
+tf.app.flags.DEFINE_string("save_dir", None,
+                           "Path to experiments. If not passed, then AMASS_EXPERIMENTS environment variable is used.")
 
 tf.app.flags.DEFINE_enum("model_type", "zero_velocity", ["zero_velocity"], "Which model: only `zero_velocity` for now.")
 tf.app.flags.DEFINE_enum("data_type", "rotmat", ["rotmat", "aa", "quat"],
@@ -38,9 +42,13 @@ tf.app.flags.DEFINE_integer("early_stopping_tolerance", 20, "# of waiting steps 
 
 tf.app.flags.DEFINE_integer("seed", 1234, "Seed value.")
 tf.app.flags.DEFINE_integer("batch_size", 16, "Batch size to use during training.")
+tf.app.flags.DEFINE_integer("num_epochs", 500, "Training epochs.")
 
-tf.app.flags.DEFINE_integer("seq_length_in", 50, "Number of frames to feed into the encoder.")
-tf.app.flags.DEFINE_integer("seq_length_out", 10, "Number of frames that the decoder has to predict.")
+tf.app.flags.DEFINE_integer("seq_length_in", 120, "Number of frames to feed into the encoder.")
+tf.app.flags.DEFINE_integer("seq_length_out", 24, "Number of frames that the decoder has to predict.")
+
+tf.app.flags.DEFINE_integer("print_frequency", 100, "Print/log every this many training steps.")
+tf.app.flags.DEFINE_integer("test_frequency", 1000, "Runs validation every this many training steps.")
 
 
 args = tf.app.flags.FLAGS
@@ -68,56 +76,56 @@ def get_model_cls(model_type):
 
 def create_model(session):
     # Set experiment directory.
-    train_dir = os.environ["AMASS_EXPERIMENTS"]
+    save_dir = args.save_dir if args.save_dir else os.environ["AMASS_EXPERIMENTS"]
     if args.use_h36m:
-        train_dir = os.path.join(train_dir, '../', 'experiments_h36m')
+        save_dir = os.path.join(save_dir, '../', 'experiments_h36m')
     
     # Load an existing config or initialize one based on the command-line arguments.
     if args.experiment_id is not None:
-        experiment_dir = glob.glob(os.path.join(train_dir, args.experiment_id + "-*"), recursive=False)[0]
+        experiment_dir = glob.glob(os.path.join(save_dir, args.experiment_id + "-*"), recursive=False)[0]
         config = json.load(open(os.path.join(experiment_dir, "config.json")))
         model_cls = get_model_cls(config["model_type"])
     else:
         # Initialize config and experiment name.
         model_cls = get_model_cls(args.model_type)
         config, experiment_name = model_cls.get_model_config(args)
-        experiment_dir = os.path.normpath(os.path.join(train_dir, experiment_name))
+        experiment_dir = os.path.normpath(os.path.join(save_dir, experiment_name))
         os.mkdir(experiment_dir)
 
     tf.random.set_random_seed(config["seed"])
     
     # Set data paths.
-    data_path = os.environ["AMASS_DATA"]
+    data_dir = args.data_dir if args.save_dir else os.environ["AMASS_DATA"]
     if config["use_h36m"]:
-        data_path = os.path.join(data_path, '../../h3.6m/tfrecords/')
+        data_dir = os.path.join(data_dir, '../../h3.6m/tfrecords/')
 
-    train_data_path = os.path.join(data_path, config["data_type"], "training", "amass-?????-of-?????")
-    test_data_path = os.path.join(data_path, config["data_type"], "test", "amass-?????-of-?????")
-    meta_data_path = os.path.join(data_path, config["data_type"], "training", "stats.npz")
+    train_data_path = os.path.join(data_dir, config["data_type"], "training", "amass-?????-of-?????")
+    test_data_path = os.path.join(data_dir, config["data_type"], "test", "amass-?????-of-?????")
+    meta_data_path = os.path.join(data_dir, config["data_type"], "training", "stats.npz")
     
     # Exhaustive validation uses all motion windows extracted from the sequences. Since it takes much longer, it is
     # advised to use the default validation procedure. It basically extracts a window randomly or from the center of a
-    # motion sequence.
-    if config["exhaustive_validation"]:
-        valid_data_path = os.path.join(data_path, config["data_type"], "validation", "amass-?????-of-?????")
+    # motion sequence. The latter one is deterministic and reproducible.
+    if config.get("exhaustive_validation", False):
+        valid_data_path = os.path.join(data_dir, config["data_type"], "validation", "amass-?????-of-?????")
     else:
-        valid_data_path = os.path.join(data_path, config["data_type"], "validation_dynamic", "amass-?????-of-?????")
+        valid_data_path = os.path.join(data_dir, config["data_type"], "validation_dynamic", "amass-?????-of-?????")
 
     # Data splits.
     # Each sample in training data is a full motion clip. We extract windows of seed+target length randomly.
-    window_length = config["seq_length_in"] + config["seq_length_out"]
+    window_length = config["source_seq_len"] + config["target_seq_len"]
     with tf.name_scope("training_data"):
         train_data = TFRecordMotionDataset(data_path=train_data_path,
                                            meta_data_path=meta_data_path,
                                            batch_size=config["batch_size"],
                                            shuffle=True,
                                            extract_windows_of=window_length,
-                                           extract_random_windows=True,
+                                           window_type=C.DATA_WINDOW_RANDOM,
                                            num_parallel_calls=8,
                                            normalize=not config["no_normalization"])
         train_pl = train_data.get_tf_samples()
 
-    if config["exhaustive_validation"]:
+    if config.get("exhaustive_validation", False):
         window_length = 0
         assert window_length <= 180, "TFRecords are hardcoded with length of 180."
     
@@ -127,7 +135,7 @@ def create_model(session):
                                            batch_size=config["batch_size"]*2,
                                            shuffle=False,
                                            extract_windows_of=window_length,
-                                           extract_random_windows=False,
+                                           window_type=C.DATA_WINDOW_CENTER,
                                            num_parallel_calls=4,
                                            normalize=not config["no_normalization"])
         valid_pl = valid_data.get_tf_samples()
@@ -138,7 +146,7 @@ def create_model(session):
                                           batch_size=256,  # to speedup inference
                                           shuffle=False,
                                           extract_windows_of=window_length,
-                                          extract_random_windows=False,
+                                          window_type=C.DATA_WINDOW_BEGINNING,
                                           num_parallel_calls=4,
                                           normalize=not config["no_normalization"])
         test_pl = test_data.get_tf_samples()
@@ -192,7 +200,7 @@ def create_model(session):
             if config.get("use_25fps", False):
                 srnn_dir += "_25fps"
                 extract_windows_of = 60
-            srnn_path = os.path.join(data_path, config["data_type"], srnn_dir, "amass-?????-of-?????")
+            srnn_path = os.path.join(data_dir, config["data_type"], srnn_dir, "amass-?????-of-?????")
             srnn_data = SRNNTFRecordMotionDataset(data_path=srnn_path,
                                                   meta_data_path=meta_data_path,
                                                   batch_size=config["batch_size"],
@@ -287,7 +295,7 @@ def train():
         metrics_engine = MetricsEngine(fk_engine,
                                        target_lengths,
                                        pck_threshs=pck_thresholds,
-                                       rep="quat" if train_model.use_quat else "aa" if train_model.use_aa else "rot_mat",
+                                       rep=C.QUATERNION if train_model.use_quat else C.ANGLE_AXIS if train_model.use_aa else C.ROT_MATRIX,
                                        force_valid_rot=True)
         # create the necessary summary placeholders and ops
         metrics_engine.create_summaries()
@@ -423,10 +431,6 @@ def train():
                         print("Train [{:04d}] \t Loss: {:.3f} \t time/batch: {:.3f}".format(step,
                                                                                             train_loss_avg,
                                                                                             time_elapsed))
-                    # Learning rate decay
-                    if step % config.get("learning_rate_decay_steps", step) == 0 and train_model.learning_rate_decay_type == "piecewise":
-                        sess.run(train_model.learning_rate_scheduler)
-
                 except tf.errors.OutOfRangeError:
                     sess.run(train_iter.initializer)
                     epoch += 1
@@ -496,15 +500,8 @@ def train():
         print("Done!")
 
 
-def sample():
-    raise Exception("Not implemented.")
-
-
-def main(_):
-    if args.sample:
-        sample()
-    else:
-        train()
+def main(argv):
+    train()
 
 
 if __name__ == "__main__":

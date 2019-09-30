@@ -4,7 +4,7 @@ import os
 import functools
 
 from common.constants import Constants as C
-from base_dataset import Dataset
+from data.base_dataset import Dataset
 
 
 class TFRecordMotionDataset(Dataset):
@@ -15,8 +15,8 @@ class TFRecordMotionDataset(Dataset):
         print("Loading motion data from {}".format(os.path.abspath(data_path)))
         # Extract a window randomly. If the sequence is shorter, ignore it.
         self.extract_windows_of = kwargs.get("extract_windows_of", 0)
-        # Whether to extract windows randomly or from the beginning of the sequence.
-        self.extract_random_windows = kwargs.get("extract_random_windows", True)
+        # Whether to extract windows randomly, from the beginning or the middle of the sequence.
+        self.window_type = kwargs.get("window_type", True)
         self.length_threshold = kwargs.get("length_threshold", self.extract_windows_of)
         self.num_parallel_calls = kwargs.get("num_parallel_calls", 16)
         self.normalize = kwargs.get("normalize", True)
@@ -55,12 +55,17 @@ class TFRecordMotionDataset(Dataset):
 
         if self.extract_windows_of > 0:
             self.tf_data = self.tf_data.filter(functools.partial(self.__pp_filter))
-            if self.extract_random_windows:
-                self.tf_data = self.tf_data.map(functools.partial(self.__pp_get_windows_randomly),
+            if self.window_type == C.DATA_WINDOW_BEGINNING:
+                self.tf_data = self.tf_data.map(functools.partial(self.__pp_get_windows_beginning),
                                                 num_parallel_calls=self.num_parallel_calls)
-            else:
+            elif self.window_type == C.DATA_WINDOW_CENTER:
                 self.tf_data = self.tf_data.map(functools.partial(self.__pp_get_windows_middle),
                                                 num_parallel_calls=self.num_parallel_calls)
+            elif self.window_type == C.DATA_WINDOW_RANDOM:
+                self.tf_data = self.tf_data.map(functools.partial(self.__pp_get_windows_random),
+                                                num_parallel_calls=self.num_parallel_calls)
+            else:
+                raise Exception("Unknown window type.")
 
     def tf_data_normalization(self):
         # Applies normalization.
@@ -106,7 +111,7 @@ class TFRecordMotionDataset(Dataset):
     def __pp_filter(self, sample):
         return tf.shape(sample["poses"])[0] >= self.length_threshold
 
-    def __pp_get_windows_randomly(self, sample):
+    def __pp_get_windows_random(self, sample):
         start = tf.random_uniform((1, 1), minval=0, maxval=tf.shape(sample["poses"])[0]-self.extract_windows_of+1, dtype=tf.int32)[0][0]
         end = tf.minimum(start+self.extract_windows_of, tf.shape(sample["poses"])[0])
         sample["poses"] = sample["poses"][start:end, :]
