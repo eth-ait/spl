@@ -10,7 +10,7 @@ from common.tf_rot_conversions import quat2rotmat, aa2rotmat
 
 try:
     sys.path.append('../external/smpl_py3')
-    from smpl_webuser.serialization import load_model
+    from external.smpl_py3.smpl_webuser.serialization import load_model
 except:
     print("SMPL model not available.")
 

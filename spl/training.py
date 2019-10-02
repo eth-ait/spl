@@ -95,7 +95,7 @@ def create_model(session):
     tf.random.set_random_seed(config["seed"])
     
     # Set data paths.
-    data_dir = args.data_dir if args.save_dir else os.environ["AMASS_DATA"]
+    data_dir = args.data_dir if args.data_dir else os.environ["AMASS_DATA"]
     if config["use_h36m"]:
         data_dir = os.path.join(data_dir, '../../h3.6m/tfrecords/')
 
@@ -157,10 +157,7 @@ def create_model(session):
             config=config,
             data_pl=train_pl,
             mode=C.TRAIN,
-            reuse=False,
-            dtype=tf.float32,
-            var_channel=train_data.var_channel if train_data.normalize else None,
-            mean_channel=train_data.mean_channel if train_data.normalize else None)
+            reuse=False)
         train_model.build_graph()
 
     with tf.name_scope(C.SAMPLE):
@@ -168,10 +165,7 @@ def create_model(session):
             config=config,
             data_pl=valid_pl,
             mode=C.SAMPLE,
-            reuse=True,
-            dtype=tf.float32,
-            var_channel=valid_data.var_channel if valid_data.normalize else None,
-            mean_channel=valid_data.mean_channel if valid_data.normalize else None)
+            reuse=True)
         valid_model.build_graph()
 
     with tf.name_scope(C.TEST):
@@ -179,10 +173,7 @@ def create_model(session):
             config=config,
             data_pl=test_pl,
             mode=C.SAMPLE,
-            reuse=True,
-            dtype=tf.float32,
-            var_channel=test_data.var_channel if test_data.normalize else None,
-            mean_channel=test_data.mean_channel if test_data.normalize else None)
+            reuse=True)
         test_model.build_graph()
     
     # Return of this function.

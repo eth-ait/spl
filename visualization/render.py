@@ -5,11 +5,11 @@ import quaternion
 from matplotlib import pyplot as plt, animation as animation
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from fk import SMPLForwardKinematics
-from smpl import sparse_to_full
-from smpl import SMPL_MAJOR_JOINTS
-from smpl import SMPL_NR_JOINTS
-from smpl import SMPL_PARENTS
+from visualization.fk import SMPLForwardKinematics
+from visualization.smpl import sparse_to_full
+from visualization.smpl import SMPL_MAJOR_JOINTS
+from visualization.smpl import SMPL_NR_JOINTS
+from visualization.smpl import SMPL_PARENTS
 
 from metrics.motion_metrics import get_closest_rotmat
 from metrics.motion_metrics import is_valid_rotmat
@@ -24,14 +24,14 @@ class Visualizer(object):
     """
     Helper class to visualize SMPL joint angle input.
     """
-    def __init__(self, fk_engine, video_dir=None, frames_dir=None, rep="rot_mat", is_sparse=True):
+    def __init__(self, fk_engine, video_dir=None, frames_dir=None, rep="rotmat", is_sparse=True):
         self.fk_engine = fk_engine
         self.video_dir = video_dir  # if not None saves to mp4
         self.frames_dir = frames_dir  # if not None dumps individual frames
         self.rep = rep
         self.is_sparse = is_sparse
         self.expected_n_input_joints = len(self.fk_engine.major_joints) if is_sparse else self.fk_engine.n_joints
-        assert rep in ["rot_mat", "quat", "aa"]
+        assert rep in ["rotmat", "quat", "aa"]
         assert not (self.video_dir and self.frames_dir), "can only either store to video or produce frames"
 
     def visualize_dense_smpl(self, joint_angles, name):
@@ -43,7 +43,7 @@ class Visualizer(object):
         assert isinstance(self.fk_engine, SMPLForwardKinematics)
         if self.rep == "quat":
             raise NotImplementedError()
-        elif self.rep == "rot_mat":
+        elif self.rep == "rotmat":
             rotmats = np.reshape(joint_angles, [joint_angles.shape[0], -1, 3, 3])
             aas = rotmat2aa(rotmats)
             aas = np.reshape(aas, [joint_angles.shape[0], -1])
@@ -58,13 +58,14 @@ class Visualizer(object):
         try:
             import sys
             sys.path.append('../external/smpl_py3')
-            from smpl_webuser.serialization import load_model
+            from external.smpl_py3.smpl_webuser.serialization import load_model
         except:
             print("SMPL model not available.")
 
-        dense = False
+        dense = True
         smpl_m = load_model('../external/smpl_py3/models/basicModel_m_lbs_10_207_0_v1.0.0.pkl')
-        save_to = os.path.join('../smpl_images/{}'.format('dense' if dense else 'skeleton'), name)
+        # save_to = os.path.join('../smpl_images/{}'.format('dense' if dense else 'skeleton'), name)
+        save_to = os.path.join(self.video_dir, 'smpl_images/{}'.format('dense' if dense else 'skeleton'), name)
         if not os.path.exists(save_to):
             os.makedirs(save_to)
 
@@ -87,7 +88,7 @@ class Visualizer(object):
         """
         if self.rep == "quat":
             self.visualize_quat(seed, prediction, target, title)
-        elif self.rep == "rot_mat":
+        elif self.rep == "rotmat":
             self.visualize_rotmat(seed, prediction, target, title)
         else:
             self.visualize_aa(seed, prediction, target, title)
