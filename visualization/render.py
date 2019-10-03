@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import numpy as np
 import quaternion
@@ -32,9 +33,9 @@ class Visualizer(object):
         self.is_sparse = is_sparse
         self.expected_n_input_joints = len(self.fk_engine.major_joints) if is_sparse else self.fk_engine.n_joints
         assert rep in ["rotmat", "quat", "aa"]
-        assert not (self.video_dir and self.frames_dir), "can only either store to video or produce frames"
+        assert self.video_dir or self.frames_dir, "Save path required for either video or frames."
 
-    def visualize_dense_smpl(self, joint_angles, name):
+    def visualize_dense_smpl(self, joint_angles, fname, dense=True, alpha=0.2):
         """
         Visualize the dense SMPL surface from the given joint angles.
         Args:
@@ -59,13 +60,17 @@ class Visualizer(object):
             import sys
             sys.path.append('../external/smpl_py3')
             from external.smpl_py3.smpl_webuser.serialization import load_model
+            smpl_m = load_model('../external/smpl_py3/models/basicModel_m_lbs_10_207_0_v1.0.0.pkl')
         except:
             print("SMPL model not available.")
 
-        dense = True
-        smpl_m = load_model('../external/smpl_py3/models/basicModel_m_lbs_10_207_0_v1.0.0.pkl')
-        # save_to = os.path.join('../smpl_images/{}'.format('dense' if dense else 'skeleton'), name)
-        save_to = os.path.join(self.video_dir, 'smpl_images/{}'.format('dense' if dense else 'skeleton'), name)
+        fname = fname.replace('/', '.')
+        fname = fname.split('_')[0]  # reduce name otherwise stupid OSes (like all of them) can't handle it
+        if self.frames_dir is None:
+            save_to = os.path.join(self.video_dir, fname, "tmp_smpl/")  # Delete this temporary directory afterwards.
+        else:
+            save_to = os.path.join(self.frames_dir, fname, "frames_smpl/")
+        
         if not os.path.exists(save_to):
             os.makedirs(save_to)
 
@@ -74,8 +79,17 @@ class Visualizer(object):
             smpl_m.pose[:] = one_pose
             visualize_smpl_mesh(smpl_m.r.copy(), smpl_m.f, smpl_m.J_transformed.r.copy(), show=False,
                                 save_to=os.path.join(save_to, 'frame_{:0>4}.png'.format(fr)), dense=dense,
-                                alpha=0.2 if dense else 0.0)
-
+                                alpha=alpha)
+        
+        if self.video_dir is not None:
+            video_path = os.path.join(self.video_dir, fname, fname+"_smpl.mp4")
+            frame_path = os.path.join(save_to, 'frame_%04d.png')
+            create_mp4_clip(video_path, frame_path)
+            
+        # Delete frames if they are not required to store.
+        if self.frames_dir is None:
+            shutil.rmtree(save_to)
+        
     def visualize(self, seed, prediction, target, title):
         """
         Visualize prediction and ground truth side by side. At the moment only supports sparse pose input in rotation
@@ -118,7 +132,7 @@ class Visualizer(object):
 
         self.visualize_rotmat(_to_rotmat(seed), _to_rotmat(prediction), _to_rotmat(target), title)
 
-    def visualize_rotmat(self, seed, prediction, target, title):
+    def visualize_rotmat(self, seed, prediction, target, fname):
         assert seed.shape[-1] == prediction.shape[-1] == target.shape[-1] == self.expected_n_input_joints * 9
         assert prediction.shape[0] == target.shape[0]
         n_joints = self.expected_n_input_joints
@@ -152,26 +166,56 @@ class Visualizer(object):
         pred_pos = pred_pos[..., [0, 2, 1]]
         targ_pos = targ_pos[..., [0, 2, 1]]
 
-        f_name = title.replace('/', '.')
-        f_name = f_name.split('_')[0]  # reduce name otherwise stupid OSes (like all of them) can't handle it
+        fname = fname.replace('/', '.')
+        fname = fname.split('_')[0]  # reduce name otherwise stupid OSes (like all of them) can't handle it
+        
+        out_name, save_to = None, None
         if self.video_dir is not None:
-            # save output animation to mp4
-            out_name = os.path.join(self.video_dir, f_name + '.mp4')
-        elif self.frames_dir is not None:
-            out_name = os.path.join(self.frames_dir, f_name)
-        else:
-            out_name = None
+            out_name = os.path.join(self.video_dir, fname, fname + "_skeleton.mp4")
+        if self.frames_dir is not None:
+            save_to = os.path.join(self.frames_dir, fname, "frames_skeleton/")
+        
         visualize_positions(positions=[pred_pos, targ_pos],
                             colors=[_colors[0], _colors[0]],
                             titles=['prediction', 'target'],
-                            fig_title=title,
+                            fig_title=fname,
                             parents=self.fk_engine.parents,
                             change_color_after_frame=(seed.shape[0], None),
-                            out_file=out_name)
+                            out_file=out_name,
+                            frame_dir=save_to)
+
+
+def create_mp4_clip(out_path, frame_path_format, fps=60, start_frame=0):
+    """Creates an mp4 video clip by using already stored frames in png format.
+
+    Args:
+        out_path: <output-file-path>.mp4
+        frame_path_format: <path-to-frames>frame_%04d.png
+        fps:
+        start_frame:
+    Returns:
+    """
+    # create movie and save it to destination
+    command = ['ffmpeg',
+               '-start_number', str(start_frame),
+               '-framerate', str(fps),  # must be this early, otherwise it is not respected
+               '-r', '30',  # output is 30 fps
+               '-loglevel', 'panic',
+               '-i', frame_path_format,
+               '-c:v', 'libx264',
+               '-preset', 'slow',
+               '-profile:v', 'high',
+               '-level:v', '4.0',
+               '-pix_fmt', 'yuv420p',
+               '-y',
+               out_path]
+    fnull = open(os.devnull, 'w')
+    subprocess.Popen(command, stdout=fnull).wait()
+    fnull.close()
 
 
 def visualize_positions(positions, colors, titles, fig_title, parents, change_color_after_frame=None, overlay=False,
-                        out_file=None, fps=60):
+                        out_file=None, frame_dir=None, fps=60):
     """
     Visualize motion given 3D positions. Can visualize several motions side by side. If the sequence lengths don't
     match, all animations are displayed until the shortest sequence length.
@@ -185,6 +229,8 @@ def visualize_positions(positions, colors, titles, fig_title, parents, change_co
         fps: frames per second
         change_color_after_frame: after this frame id, the color of the plot is changed (for each entry in `positions`)
         overlay: if true, all entries in `positions` are plotted into the same subplot
+        frame_dir: directory to write individual frames. If it is not passed, then a temporary folder is created and
+            deleted after creating the clip.
     """
     seq_length = np.amin([pos.shape[0] for pos in positions])
     n_joints = positions[0].shape[1]
@@ -290,24 +336,28 @@ def visualize_positions(positions, colors, titles, fig_title, parents, change_co
     line_ani = animation.FuncAnimation(fig, update_frame, seq_length,
                                        fargs=(pos, all_lines, parents, colors + [colors[0]]),
                                        interval=1000/fps)
-
     if out_file is None:
-        # interactive
-        plt.show()
-    elif out_file.endswith('.mp4'):
-        # save to video file
-        print('saving video to {}'.format(out_file))
-        # this gives weird errors
-        # w = writers['libx264']
-        # writer = w(fps=fps, metadata={}, bitrate=1000)  # increase bitrate for higher quality
-        # line_ani.save(out_file, writer=writer)
-        save_animation(fig, seq_length, update_frame, [pos, all_lines, parents, colors + [colors[0]]],
-                       out_folder=out_file, create_mp4=True)
+        plt.show()  # interactive
     else:
-        # dump frames as vector-graphics (SVG)
-        print('dumping individual frames to {}'.format(out_file))
-        save_animation(fig, seq_length, update_frame, [pos, all_lines, parents, colors + [colors[0]]],
-                       out_folder=out_file, image_format='svg')
+        assert out_file.endswith('.mp4'), "Only mp4 extension works."
+        if frame_dir is None:
+            save_to = out_file + "_tmp/"
+        else:
+            save_to = frame_dir
+            
+        if not os.path.exists(save_to):
+            os.makedirs(save_to)
+
+        # Save frames into disk.
+        for j in range(0, seq_length):
+            update_frame(j, *[pos, all_lines, parents, colors + [colors[0]]])
+            fig.savefig(os.path.join(save_to, 'frame_{:0>4}.{}'.format(j, "png")), dip=1000)
+        
+        # Create a video clip.
+        create_mp4_clip(out_file, os.path.join(save_to, 'frame_%04d.png'))
+        # Delete frames if they are not required to store.
+        if frame_dir is None:
+            shutil.rmtree(save_to)
     plt.close()
 
 
@@ -349,22 +399,8 @@ def save_animation(fig, seq_length, update_func, update_func_args, out_folder, i
             counter += 1
             movie_name = os.path.join(out_folder, "vid{}.mp4".format(counter))
 
-        command = ['ffmpeg',
-                   '-start_number', str(start_frame),
-                   '-framerate', str(fps),  # must be this early, otherwise it is not respected
-                   '-r', '30',  # output is 30 fps
-                   '-loglevel', 'panic',
-                   '-i', os.path.join(tmp_path, 'frame_%04d.png'),
-                   '-c:v', 'libx264',
-                   '-preset', 'slow',
-                   '-profile:v', 'high',
-                   '-level:v', '4.0',
-                   '-pix_fmt', 'yuv420p',
-                   '-y',
-                   movie_name]
-        FNULL = open(os.devnull, 'w')
-        subprocess.Popen(command, stdout=FNULL).wait()
-        FNULL.close()
+        frame_path = os.path.join(out_folder, 'frame_%04d.png')
+        create_mp4_clip(movie_name, frame_path, fps)
 
 
 def visualize_smpl_mesh(vertices, faces, joints, alpha=0.2, show=True, save_to=None, dense=True):
@@ -420,7 +456,6 @@ def visualize_smpl_mesh(vertices, faces, joints, alpha=0.2, show=True, save_to=N
     else:
         assert save_to
         fig.savefig(save_to, dip=1000)
-
     plt.close()
 
 

@@ -428,7 +428,7 @@ def _test_np_fk():
     positions_np = mnp.from_aa(random_pose)
     print("Numpy: {} seconds".format(time.time() - start))
 
-    from render import visualize_positions
+    from visualization.render import visualize_positions
     visualize_positions([positions, positions_np], SMPL_PARENTS, overlay=True)
 
 
@@ -456,7 +456,7 @@ def _test_fk_sparse():
         tf_jointse = sess.run(tf_joints)
         print(np.linalg.norm(smpl_poses - tf_jointse))
 
-    from render import visualize_positions
+    from visualization.render import visualize_positions
     visualize_positions([smpl_poses, tf_jointse], SMPL_PARENTS, overlay=True)
 
 
