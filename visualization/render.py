@@ -25,7 +25,7 @@ class Visualizer(object):
     """
     Helper class to visualize SMPL joint angle input.
     """
-    def __init__(self, fk_engine, video_dir=None, frames_dir=None, rep="rotmat", is_sparse=True):
+    def __init__(self, fk_engine, video_dir=None, frames_dir=None, rep="rotmat", is_sparse=True, smpl_model=None):
         self.fk_engine = fk_engine
         self.video_dir = video_dir  # if not None saves to mp4
         self.frames_dir = frames_dir  # if not None dumps individual frames
@@ -34,6 +34,8 @@ class Visualizer(object):
         self.expected_n_input_joints = len(self.fk_engine.major_joints) if is_sparse else self.fk_engine.n_joints
         assert rep in ["rotmat", "quat", "aa"]
         assert self.video_dir or self.frames_dir, "Save path required for either video or frames."
+        
+        self.smpl_model = smpl_model
 
     def visualize_dense_smpl(self, joint_angles, fname, dense=True, alpha=0.2):
         """
@@ -56,13 +58,17 @@ class Visualizer(object):
 
         # TODO(kamanuel) make this more efficient and less hacky
         # load the SMPL model
-        try:
-            import sys
-            sys.path.append('../external/smpl_py3')
-            from external.smpl_py3.smpl_webuser.serialization import load_model
-            smpl_m = load_model('../external/smpl_py3/models/basicModel_m_lbs_10_207_0_v1.0.0.pkl')
-        except:
-            print("SMPL model not available.")
+        if self.smpl_model is None:
+            try:
+                # import sys
+                # sys.path.append('../external/smpl_py3')
+                from external.smpl_py3.smpl_webuser.serialization import load_model
+                self.smpl_model = load_model('../external/smpl_py3/models/basicModel_m_lbs_10_207_0_v1.0.0.pkl')
+                smpl_m = self.smpl_model
+            except:
+                raise Exception("SMPL model not available.")
+        else:
+            smpl_m = self.smpl_model
 
         fname = fname.replace('/', '.')
         fname = fname.split('_')[0]  # reduce name otherwise stupid OSes (like all of them) can't handle it
@@ -89,8 +95,37 @@ class Visualizer(object):
         # Delete frames if they are not required to store.
         if self.frames_dir is None:
             shutil.rmtree(save_to)
+            
+    def visualize_skeleton(self, joint_angles, fname):
+        assert joint_angles.shape[-1] == self.expected_n_input_joints * 9
+        n_joints = self.expected_n_input_joints
         
-    def visualize(self, seed, prediction, target, title):
+        # calculate positions
+        joint_angles = np.reshape(joint_angles, [-1, n_joints, 3, 3])
+        if self.is_sparse:
+            pos = self.fk_engine.from_sparse(joint_angles, return_sparse=False)  # (N, full_n_joints, 3)
+        else:
+            pos = self.fk_engine.from_rotmat(joint_angles)
+        pos = pos[..., [0, 2, 1]]
+    
+        fname = fname.replace('/', '.')
+        fname = fname.split('_')[0]  # reduce name otherwise stupid OSes (like all of them) can't handle it
+    
+        out_name, save_to = None, None
+        if self.video_dir is not None:
+            out_name = os.path.join(self.video_dir, fname, fname + "_skeleton.mp4")
+        if self.frames_dir is not None:
+            save_to = os.path.join(self.frames_dir, fname, "frames_skeleton/")
+    
+        visualize_positions(positions=[pos],
+                            colors=[_colors[0]],
+                            titles=[""],
+                            fig_title=fname,
+                            parents=self.fk_engine.parents,
+                            out_file=out_name,
+                            frame_dir=save_to)
+    
+    def visualize_results(self, seed, prediction, target, title):
         """
         Visualize prediction and ground truth side by side. At the moment only supports sparse pose input in rotation
         matrix or quaternion format.
@@ -155,7 +190,7 @@ class Visualizer(object):
         pred_are_valid = is_valid_rotmat(np.reshape(pred, [-1, n_joints, 3, 3]))
         assert pred_are_valid, 'predicted rotation matrices are not valid rotations'
 
-        # compute positions
+        # calculate positions
         if self.is_sparse:
             pred_pos = self.fk_engine.from_sparse(pred, return_sparse=False)  # (N, full_n_joints, 3)
             targ_pos = self.fk_engine.from_sparse(targ, return_sparse=False)  # (N, full_n_joints, 3)

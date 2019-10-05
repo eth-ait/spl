@@ -137,7 +137,7 @@ def evaluate(session, test_model, test_data, args, eval_dir, use_h36m):
 
     print("Evaluating test set ...")
     test_metrics, eval_result = evaluate_model(test_model, test_iter, metrics_engine)
-    print("Test \t {}".format(metrics_engine.get_summary_string(test_metrics)))
+    print(metrics_engine.get_summary_string_all(test_metrics, target_lengths, pck_thresholds))
     
     if args.visualize_smpl or args.visualize:
         # visualize some random samples stored in `eval_result` which is a dict id -> (prediction, seed, target)
@@ -154,8 +154,8 @@ def evaluate(session, test_model, test_data, args, eval_dir, use_h36m):
             if i in selected_idx:
                 print("Visualizing sample " + k)
                 if args.visualize:
-                    visualizer.visualize(eval_result[k][2], eval_result[k][0], eval_result[k][1],
-                                         title=k + "_i{}".format(i))
+                    visualizer.visualize_results(eval_result[k][2], eval_result[k][0], eval_result[k][1],
+                                                 title=k + "_i{}".format(i))
                 else:
                     visualizer.visualize_dense_smpl(np.concatenate([eval_result[k][2], eval_result[k][1]], axis=0),
                                                     k + "_i{}".format(i))

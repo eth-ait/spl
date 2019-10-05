@@ -63,6 +63,7 @@ def sparse_to_full(joint_angles_sparse, sparse_joints_idxs, tot_nr_joints, rep="
     return smpl_full
 
 
+# TODO (@manuel) Possibly duplicate? There is another one in fk.py
 class SMPLForwardKinematics(object):
     """
     Computes the joint positions using the SMPL model and code. This is slow because SMPL does not support a
