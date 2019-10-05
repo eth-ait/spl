@@ -612,7 +612,7 @@ class MetricsEngine(object):
     @classmethod
     def get_summary_string(cls, final_metrics, at_mode=False):
         """
-        Create a summary string from the given metrics, e.g. for printing to the console.
+        Create a summary string (e.g. for printing to the console) from the given metrics for the entire sequence.
         Args:
             final_metrics: Dictionary of metric values, expects them to be in shape (seq_length, ) except for PCK.
             at_mode: If true will report the numbers at the last frame rather then until the last frame.
@@ -634,7 +634,39 @@ class MetricsEngine(object):
             m_name = "pck_{}".format(t)
             val = final_metrics[m_name][seq_length-1] if at_mode else np.mean(final_metrics[m_name])
             s += "   {}: {:.3f}".format(m_name, val)
+        return s
 
+    @classmethod
+    def get_summary_string_all(cls, final_metrics, target_lengths, pck_thresholds, at_mode=False):
+        """
+        Create a summary string for given lengths.
+        Args:
+            final_metrics: Dictionary of metric values, expects them to be in shape (seq_length, ) except for PCK.
+            target_lengths: Metrics at these time-steps are reported.
+            pck_thresholds: PCK for this threshold values is reported.
+            at_mode: If true will report the numbers at the last frame rather then until the last frame.
+
+        Returns:
+            A summary string.
+        """
+        
+        # TODO (emre) AUC metric.
+        auc_ = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3]
+        
+        s = ""
+        for seq_length in sorted(target_lengths):
+            s += "\nMetrics until {:<2}:".format(seq_length)
+            for m in sorted(final_metrics):
+                if m.startswith("pck"):
+                    continue
+                val = final_metrics[m][seq_length - 1] if at_mode else np.sum(final_metrics[m][:seq_length])
+                s += "   {}: {:.3f}".format(m, val)
+        
+            for pck_ in pck_thresholds:
+                t = pck_*100  # Convert pck value in float to a str compatible name.
+                m_name = "pck_{}".format(t if t < 1 else (int(t)))
+                val = final_metrics[m_name][seq_length - 1] if at_mode else np.mean(final_metrics[m_name][:seq_length])
+                s += "   {}: {:.3f}".format(m_name, val)
         return s
 
 
