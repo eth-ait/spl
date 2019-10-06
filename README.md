@@ -2,10 +2,11 @@
 Code repository for our paper presented at ICCV '19.
 
 ### Required packages
+We recommend creating a virtual environment and install the required packages by running:
 ```
 pip install -r requirements.txt
 ```
-We run experiments with `Tensorflow 1.12.0`. We check that Tensorflow versions until `1.14.0` are also okay, but gives too many warnings. 
+We used `Tensorflow 1.12.0` in our experiments. We also check that Tensorflow versions until `1.14.0` are also okay, but gives too many warnings due to TF 2.0. 
 Please note that having `numpy 1.14.5` is important. If you use other versions of TF or other packages, make sure that you have the correct numpy version.  
 
 ### Preparing the Data
@@ -34,8 +35,20 @@ export PYTHONPATH=$PYTHONPATH:<path-to-this-repository>
 ```
 Please note that updating `PYTHONPATH` is required while `AMASS_DATA` and `AMASS_EXPERIMENTS` are optional.
 
+You can train `zero_velocity` model by using rotation matrix representation as follows: 
+```
+cd <path-to-this-repository>
+python spl/training.py --model_type zero_velocity --data_type rotmat
+```
+With a unique timestamp, the experiment is stored under `AMASS_EXPERIMENTS` or the given target directory if you run the training command with `--data_dir` flag.
+See flags and possible choices in `spl/training.py`. 
+
 ### Evaluation
-TODO
+You can evaluate and/or visualize models after training. The following command stores predicted clips of 60 frames by evaluating the model on the test dataset with full sequences.
+See flags and possible choices in `spl/evaluation.py`. 
+```
+python spl/evaluation.py --model_id <experiment-timestamp> --visualize --save_video --seq_length_out 60 --dynamic_test_split
+```
 
 ### Sample scripts
 Under `spl/test/`, we share sample scripts showing how to use components (i.e., metrics, visualization, tfrecord data) of this repository without requiring the entire pipeline.   

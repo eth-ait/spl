@@ -94,7 +94,8 @@ class TFRecordMotionDataset(Dataset):
         self.tf_data = self.tf_data.map(functools.partial(self.__to_model_inputs), num_parallel_calls=self.num_parallel_calls)
         self.tf_data = self.tf_data.padded_batch(self.batch_size, padded_shapes=self.tf_data.output_shapes)
         self.tf_data = self.tf_data.prefetch(2)
-        self.tf_data = self.tf_data.apply(tf.data.experimental.prefetch_to_device('/device:GPU:0'))
+        if tf.test.is_gpu_available():
+            self.tf_data = self.tf_data.apply(tf.data.experimental.prefetch_to_device('/device:GPU:0'))
 
     def create_meta_data(self):
         """We assume meta data always exists."""
