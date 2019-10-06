@@ -4,13 +4,13 @@ import tensorflow as tf
 from model.base_model import BaseModel
 
 
-class ASimpleYetEffectiveBaseline(BaseModel):
+class ZeroVelocityBaseline(BaseModel):
     """Repeats the last known frame for as many frames necessary.
     
     From Martinez et al. (https://arxiv.org/abs/1705.02445).
     """
     def __init__(self, config, data_pl, mode, reuse, **kwargs):
-        super(ASimpleYetEffectiveBaseline, self).__init__(config, data_pl, mode, reuse, **kwargs)
+        super(ZeroVelocityBaseline, self).__init__(config, data_pl, mode, reuse, **kwargs)
 
         # Dummy variable
         self._dummy = tf.Variable(0.0, name="dummy_variable")

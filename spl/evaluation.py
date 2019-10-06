@@ -8,7 +8,7 @@ import tensorflow as tf
 
 from common.constants import Constants as C
 from data.amass_tf import TFRecordMotionDataset
-from model.zero_velocity import ASimpleYetEffectiveBaseline
+from model.zero_velocity import ZeroVelocityBaseline
 
 from visualization.render import Visualizer
 from visualization.fk import H36MForwardKinematics
@@ -31,7 +31,7 @@ def load_latest_checkpoint(session, saver, experiment_dir):
 
 def get_model_cls(model_type):
     if model_type == C.MODEL_ZERO_VEL:
-        return ASimpleYetEffectiveBaseline
+        return ZeroVelocityBaseline
     else:
         raise Exception("Unknown model type.")
 
