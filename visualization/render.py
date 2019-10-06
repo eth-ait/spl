@@ -7,15 +7,9 @@ from matplotlib import pyplot as plt, animation as animation
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from visualization.fk import SMPLForwardKinematics
-from visualization.smpl import sparse_to_full
-from visualization.smpl import SMPL_MAJOR_JOINTS
-from visualization.smpl import SMPL_NR_JOINTS
-from visualization.smpl import SMPL_PARENTS
 
-from metrics.motion_metrics import get_closest_rotmat
-from metrics.motion_metrics import is_valid_rotmat
-from metrics.motion_metrics import aa2rotmat
-from metrics.motion_metrics import rotmat2aa
+from common.utils import is_valid_rotmat, aa2rotmat, rotmat2aa, get_closest_rotmat, sparse_to_full
+from fk import SMPL_MAJOR_JOINTS, SMPL_NR_JOINTS, SMPL_PARENTS
 
 _prop_cycle = plt.rcParams['axes.prop_cycle']
 _colors = _prop_cycle.by_key()['color']

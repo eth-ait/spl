@@ -9,7 +9,7 @@ from data.amass_tf import TFRecordMotionDataset
 
 class SRNNTFRecordMotionDataset(TFRecordMotionDataset):
     """
-    Dataset class for AMASS dataset stored as TFRecord files.
+    Dataset class for the test sequences on H3.6M defined by Jain et al. in the S-RNN paper.
     """
     def __init__(self, data_path, meta_data_path, batch_size, shuffle, **kwargs):
         super(SRNNTFRecordMotionDataset, self).__init__(data_path, meta_data_path, batch_size, shuffle, **kwargs)

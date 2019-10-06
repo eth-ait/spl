@@ -309,16 +309,6 @@ Eyes/yokoyamasitdown_standup_SB2_07_SB2_hold_SB_sideway_SB2_yokoyama_dynamics.pk
 Eyes/yokoyamasitdown_standup_SB2_15_SB2_move_SB_chair_SB2_yokoyama_dynamics.pkl
 Eyes/yokoyamaturn_SB2_02_SB2_look_SB_around_SB2_yokoyama_dynamics.pkl
 Eyes/yokoyamaturn_SB2_05_SB2_turn_SB2_yokoyama_dynamics.pkl
-H36/S11_Greeting_SB_2.pkl
-H36/S11_Phoning_SB_2.pkl
-H36/S11_Purchases.pkl
-H36/S11_Purchases_SB_1.pkl
-H36/S1_WalkingDog_SB_1.pkl
-H36/S6_Discussion_SB_1.pkl
-H36/S6_Waiting_SB_3.pkl
-H36/S7_WalkDog_SB_1.pkl
-H36/S8_Waiting_SB_1.pkl
-H36/S8_WalkDog_SB_1.pkl
 HDM05/bdHDM_bd_01_SB2_01_01_120_dynamics.pkl
 HDM05/bdHDM_bd_05_SB2_02_03_120_dynamics.pkl
 HDM05/bkHDM_bk_02_SB2_03_04_120_dynamics.pkl

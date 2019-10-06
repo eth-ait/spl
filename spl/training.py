@@ -21,9 +21,7 @@ from visualization.fk import SMPLForwardKinematics
 from visualization.fk import H36M_MAJOR_JOINTS
 
 from metrics.motion_metrics import MetricsEngine
-from metrics.motion_metrics import rotmat2euler
-from metrics.motion_metrics import aa2rotmat
-
+from common.utils import rotmat2euler, aa2rotmat
 
 tf.app.flags.DEFINE_string("experiment_id", None, "Unique experiment id to restore an existing model.")
 tf.app.flags.DEFINE_string("data_dir", None,

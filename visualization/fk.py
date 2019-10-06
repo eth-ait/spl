@@ -2,61 +2,27 @@ import numpy as np
 import quaternion
 import cv2
 
-from visualization.smpl import sparse_to_full
-from visualization.smpl import SMPL_PARENTS
-from visualization.smpl import SMPL_MAJOR_JOINTS
+from common.utils import sparse_to_full
 
-
-# this comes from Martinez' preprocessing, does not take into account root position
+# This comes from Martinez' preprocessing, does not take into account root position.
 H36M_JOINTS_TO_IGNORE = [5, 10, 15, 20, 21, 22, 23, 28, 29, 30, 31]
 H36M_MAJOR_JOINTS = [0, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 24, 25, 26, 27]
 H36M_NR_JOINTS = 32
 H36M_PARENTS = [-1, 0, 1, 2, 3, 4, 0, 6, 7, 8, 9, 0, 11, 12, 13, 14, 12,
                 16, 17, 18, 19, 20, 19, 22, 12, 24, 25, 26, 27, 28, 27, 30]
 
-
-def local_rot_to_global(joint_angles, parents, rep="rotmat", left_mult=False):
-    """
-    Converts local rotations into global rotations by "unrolling" the kinematic chain.
-    Args:
-        joint_angles: An np array of rotation matrices of shape (N, nr_joints*dof)
-        parents: A np array specifying the parent for each joint
-        rep: Which representation is used for `joint_angles`
-        left_mult: If True the local matrix is multiplied from the left, rather than the right
-
-    Returns:
-        The global rotations as an np array of rotation matrices in format (N, nr_joints, 3, 3)
-    """
-    assert rep in ["rotmat", "quat", "aa"]
-    n_joints = len(parents)
-    if rep == "rotmat":
-        rots = np.reshape(joint_angles, [-1, n_joints, 3, 3])
-    elif rep == "quat":
-        rots = quaternion.as_rotation_matrix(quaternion.from_float_array(
-            np.reshape(joint_angles, [-1, n_joints, 4])))
-    else:
-        rots = quaternion.as_rotation_matrix(quaternion.from_rotation_vector(
-            np.reshape(joint_angles, [-1, n_joints, 3])))
-
-    out = np.zeros_like(rots)
-    dof = rots.shape[-3]
-    for j in range(dof):
-        if parents[j] < 0:
-            # root rotation
-            out[..., j, :, :] = rots[..., j, :, :]
-        else:
-            parent_rot = out[..., parents[j], :, :]
-            local_rot = rots[..., j, :, :]
-            lm = local_rot if left_mult else parent_rot
-            rm = parent_rot if left_mult else local_rot
-            out[..., j, :, :] = np.matmul(lm, rm)
-
-    return out
+SMPL_MAJOR_JOINTS = [1, 2, 3, 4, 5, 6, 9, 12, 13, 14, 15, 16, 17, 18, 19]
+SMPL_NR_JOINTS = 24
+SMPL_PARENTS = [-1, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 12, 13, 14, 16, 17, 18, 19, 20, 21]
+SMPL_JOINTS = ['pelvis', 'l_hip', 'r_hip', 'spine1', 'l_knee', 'r_knee', 'spine2', 'l_ankle', 'r_ankle', 'spine3',
+               'l_foot', 'r_foot', 'neck', 'l_collar', 'r_collar', 'head', 'l_shoulder', 'r_shoulder',
+               'l_elbow', 'r_elbow', 'l_wrist', 'r_wrist', 'l_hand', 'r_hand']
+SMPL_JOINT_MAPPING = {i: x for i, x in enumerate(SMPL_JOINTS)}
 
 
 class ForwardKinematics(object):
     """
-    FK Engine
+    FK Engine.
     """
     def __init__(self, offsets, parents, left_mult=False, major_joints=None, norm_idx=None, no_root=True):
         self.offsets = offsets
@@ -150,9 +116,9 @@ class ForwardKinematics(object):
         """
         assert self.major_joints is not None
         assert rep in ["rotmat", "quat", "aa"]
-        smpl_full = sparse_to_full(joint_angles_sparse, self.major_joints, self.n_joints, rep)
+        joint_angles_full = sparse_to_full(joint_angles_sparse, self.major_joints, self.n_joints, rep)
         fk_func = self.from_quat if rep == "quat" else self.from_aa if rep == "aa" else self.from_rotmat
-        positions = fk_func(smpl_full)
+        positions = fk_func(joint_angles_full)
         if return_sparse:
             positions = positions[:, self.major_joints]
         return positions
@@ -241,41 +207,3 @@ class SMPLForwardKinematics(ForwardKinematics):
         # normalize so that right thigh has length 1
         super(SMPLForwardKinematics, self).__init__(smpl_offsets, SMPL_PARENTS, norm_idx=4,
                                                     left_mult=False, major_joints=SMPL_MAJOR_JOINTS)
-
-
-def _test_h36m_fk():
-    # load a sample and display it
-    from data_utils import readCSVasFloat
-    sample = readCSVasFloat("../data/h3.6m/dataset/S1/walking_1.txt")  # (n, n_joints*3)
-    h36m = H36MForwardKinematics()
-    sample = sample[:, 3:]
-    sample = np.reshape(sample, [-1, H36M_NR_JOINTS, 3])[:, H36M_MAJOR_JOINTS]
-    positions = h36m.from_sparse(np.reshape(sample, [-1, len(H36M_MAJOR_JOINTS)*3]), rep="aa", return_sparse=False)
-
-    from visualization.render import visualize_positions
-    positions = positions[:, :, [0, 2, 1]]  # swap y and z
-    visualize_positions([positions], ['b'], ['test'], 'test', H36M_PARENTS)
-
-
-def _test_smpl_fk():
-    # load a sample and display it
-    import pickle as pkl
-    with open("C:\\Users\\manuel\\projects\\imu\\data\\new_batch_v9_unnorm\\H36_60FPS_for_TC_No_Blend\\S1_Walking.pkl", "rb") as f:
-        data = pkl.load(f, encoding='latin1')
-        poses = np.array(data['poses'])  # shape (seq_length, 135)
-        smpl_fk = SMPLForwardKinematics()
-        positions = smpl_fk.from_sparse(poses, rep="rotmat", return_sparse=False)
-
-        # from smpl import SMPLForwardKinematicsNP
-        # smpl_fk2 = SMPLForwardKinematicsNP("C:\\Users\\manuel\\projects\\motion-modelling\\external\\smpl_py3\\models\\basicModel_f_lbs_10_207_0_v1.0.0.pkl")
-        # positions2 = smpl_fk2.from_sparse(poses, SMPL_MAJOR_JOINTS, rep="rotmat", return_sparse=False)
-        # positions2 = positions2[:, :, [0, 2, 1]]  # swap y and z
-
-        from visualization.render import visualize_positions
-        positions = positions[:, :, [0, 2, 1]]  # swap y and z
-        visualize_positions([positions], ['b'], ['test'], 'test', SMPL_PARENTS)
-
-
-if __name__ == '__main__':
-    _test_h36m_fk()
-    _test_smpl_fk()
