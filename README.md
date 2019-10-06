@@ -1,11 +1,19 @@
 # Structured Prediction Helps 3D Human Motion Modelling 
 Code repository for our paper presented at ICCV '19.
 
-## Preparing the Data
-Download the data from the [DIP website](http://dip.is.tue.mpg.de/) and unzip it into a folder of your choice. Let's call that folder `DIP_DATA_IN`. Create a folder where you want to store the processed data, `DIP_DATA_OUT`. In the folder [`preprocessing`](./preprocessing), run the script
+### Required packages
+```
+pip install -r requirements.txt
+```
+We run experiments with `Tensorflow 1.12.0`. We check that Tensorflow versions until `1.14.0` are also okay, but gives too many warnings. 
+Please note that having `numpy 1.14.5` is important. If you use other versions of TF or other packages, make sure that you have the correct numpy version.  
+
+### Preparing the Data
+Download the data from the [DIP website](http://dip.is.tue.mpg.de/) and unzip it into a folder of your choice. Let's call that folder `<RAW_DATA>`. Create a folder where you want to store the processed data, `<SPL_DATA>`. In the folder [`preprocessing`](./preprocessing), run the script
 
 ```
-python preprocess_dip.py --input_dir DIP_DATA_IN --output_dir DIP_DATA_OUT
+cd preprocessing
+python preprocess_dip.py --input_dir <RAW_DATA> --output_dir <SPL_DATA>
 ```
 
 By default the script generates the data using rotation matrix representations. If you want to convert the data to angle-axis or quaternions, use the `--as_aa` or `--as_quat` flags.
@@ -17,7 +25,22 @@ When running the script it creates two versions of the validation and test split
 A note on the data: The data published on the DIP website is an early version of the official AMASS dataset. When we submitted the paper, the official [AMASS dataset](https://amass.is.tue.mpg.de/) was not published yet. We are planning to evaluate our model and baseline models on the official AMASS dataset and report results here. 
 If you plan to use the latest version of AMASS, we are happy to provide assistance if required. However, it shouldn't be too hard to adapt `preprocess_dip.py` to parse the AMASS data. 
 
-## Citation
+### Training
+You can pass data and save directory via command-line arguments everytime you run an experiment. Alternatively, you can set `AMASS_DATA` and `AMASS_EXPERIMENTS` environment variables. You can run the following commands:
+```
+export AMASS_DATA=<SPL_DATA>
+export AMASS_EXPERIMENTS=<path-to-experiment-directory>
+export PYTHONPATH=$PYTHONPATH:<path-to-this-repository>
+```
+Please note that updating `PYTHONPATH` is required while `AMASS_DATA` and `AMASS_EXPERIMENTS` are optional.
+
+### Evaluation
+TODO
+
+### Sample scripts
+Under `spl/test/`, we share sample scripts showing how to use components (i.e., metrics, visualization, tfrecord data) of this repository without requiring the entire pipeline.   
+
+### Citation
 If you use code from this repository, please cite 
 
 ```
@@ -33,5 +56,5 @@ If you use code from this repository, please cite
 
 If you use data from DIP or AMASS, please cite the original papers as detailed on their website.
 
-## Contact
+### Contact
 Please file an issue or contact [Emre Aksan (emre.aksan@inf.ethz.ch)](mailto:emre.aksan@inf.ethz.ch) or [Manuel Kaufmann (manuel.kaufmann@inf.ethz.ch)](mailto:manuel.kaufmann@inf.ethz.ch)
