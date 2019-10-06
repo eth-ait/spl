@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import time
-import tensorflow as tf
 
 from common.constants import Constants as C
 

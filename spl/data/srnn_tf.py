@@ -1,6 +1,4 @@
 import tensorflow as tf
-import numpy as np
-import os
 import functools
 
 from common.constants import Constants as C
