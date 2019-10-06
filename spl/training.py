@@ -121,7 +121,7 @@ def create_model(session):
                                            shuffle=True,
                                            extract_windows_of=window_length,
                                            window_type=C.DATA_WINDOW_RANDOM,
-                                           num_parallel_calls=8,
+                                           num_parallel_calls=4,
                                            normalize=not config["no_normalization"])
         train_pl = train_data.get_tf_samples()
 
@@ -198,7 +198,7 @@ def create_model(session):
                                                   shuffle=False,
                                                   extract_windows_of=extract_windows_of,
                                                   extract_random_windows=False,
-                                                  num_parallel_calls=8,
+                                                  num_parallel_calls=4,
                                                   normalize=not config["no_normalization"])
             srnn_pl = srnn_data.get_tf_samples()
 
@@ -486,7 +486,9 @@ def train():
         print("Evaluating test set ...")
         test_metrics, test_time, _ = evaluate_model(test_model, test_iter, metrics_engine)
         print("Test [{:04d}] \t {} \t total_time: {:.3f}".format(step - 1,
-                                                                 metrics_engine.get_summary_string(test_metrics),
+                                                                 metrics_engine.get_summary_string_all(test_metrics,
+                                                                                                       target_lengths,
+                                                                                                       pck_thresholds),
                                                                  test_time))
         print("Done!")
 
