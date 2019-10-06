@@ -28,21 +28,13 @@ tf_data = TFRecordMotionDataset(data_path=DATA_PATH,
 data_iter_ = tf_data.get_iterator()
 batch = data_iter_.get_next()
 
-# Visualize by using SMPL mesh if available. Otherwise, we use matplotlib to visualize skeleton.
-try:
-    from external.smpl_py3.smpl_webuser.serialization import load_model
-    smpl_model = load_model('../../external/smpl_py3/models/basicModel_m_lbs_10_207_0_v1.0.0.pkl')
-except:
-    smpl_model = None
-    print("SMPL model not available.")
-
 fk_engine = SMPLForwardKinematics()
-visualizer = Visualizer(fk_engine, SAVE_DIR, SAVE_DIR, rep="rotmat", smpl_model=smpl_model)
+visualizer = Visualizer(fk_engine, output_dir=SAVE_DIR, rep="rotmat")
 
 pose_seq = batch["inputs"].numpy()
 pose_name = batch["id"].numpy()[0].decode("utf-8")
 if smpl_model is None:
     # Visualize skeleton.
-    visualizer.visualize_skeleton(pose_seq, pose_name)
+    visualizer.visualize_skeleton(pose_seq, pose_name, frames_dir=SAVE_DIR)
 else:
     visualizer.visualize_dense_smpl(pose_seq, pose_name)
