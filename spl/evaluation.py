@@ -138,27 +138,38 @@ def evaluate(session, test_model, test_data, args, eval_dir, use_h36m):
     print("Evaluating test set ...")
     test_metrics, eval_result = evaluate_model(test_model, test_iter, metrics_engine)
     print(metrics_engine.get_summary_string_all(test_metrics, target_lengths, pck_thresholds))
-    
-    if args.visualize_smpl or args.visualize:
+
+    if args.visualize:
         # visualize some random samples stored in `eval_result` which is a dict id -> (prediction, seed, target)
-        video_dir = eval_dir if args.save_video else None
-        frames_dir = eval_dir if args.save_frames else None
-        visualizer = Visualizer(fk_engine, video_dir, frames_dir, rep=representation)
-        n_samples_viz = 30  # TODO change
-        selected_idx = [5, 6, 7]  # [5, 6, 7, 19]  # [0, 1, 2, 5, 6, 7, 9, 19, 24, 27] [24, 27]  # for the dynamic split
-        rng = np.random.RandomState(42)
-        idx = rng.randint(0, len(eval_result), size=n_samples_viz)
-    
-        sample_keys = [list(sorted(eval_result.keys()))[i] for i in idx]
+        if not args.to_video:
+            visualizer = Visualizer(interactive=True, fk_engine=fk_engine,
+                                    rep="quat" if test_model.use_quat else "aa" if test_model.use_aa else "rot_mat")
+        else:
+            visualizer = Visualizer(interactive=False,
+                                    rep="quat" if test_model.use_quat else "aa" if test_model.use_aa else "rot_mat",
+                                    output_dir=eval_dir, skeleton=not args.no_skel, dense=not args.no_mesh,
+                                    to_video=args.to_video)
+
+        n_samples_viz = 30
+
+        # Get random indices or just all of them.
+        rng = np.random.RandomState(4313)
+        idxs = rng.randint(0, len(eval_result), size=n_samples_viz)
+        # idxs = list(range(n_samples_viz))
+
+        # Select some indices for faster visualization or just all of them.
+        # selected_idxs = [4]  # [12, 13, 14, 27, 29]  # [5, 6, 7, 19]  # [0, 1, 2, 5, 6, 7, 9, 19, 24, 27]
+        # sample_keys = [list(sorted(eval_result.keys()))[i] for ii, i in enumerate(idxs) if ii in selected_idxs]
+        sample_keys = [list(sorted(eval_result.keys()))[i] for i in idxs]
+
+        # Find an entry by name
+        sample_keys = ['CMU/0/CMU/120_120_18']
+        interesting_keys = ['CMU/0/CMU/106_106_34',
+                            'BioMotion/0/BioMotion/rub0220001_treadmill_fast_dynamics',
+                            'Transition/0/Transition/mazen_c3dairkick_walkbackwards',
+                            'CMU/0/CMU/01_01_06']
         for i, k in enumerate(sample_keys):
-            if i in selected_idx:
-                print("Visualizing sample " + k)
-                if args.visualize:
-                    visualizer.visualize_results(eval_result[k][2], eval_result[k][0], eval_result[k][1],
-                                                 title=k + "_i{}".format(i))
-                else:
-                    visualizer.visualize_dense_smpl(np.concatenate([eval_result[k][2], eval_result[k][1]], axis=0),
-                                                    k + "_i{}".format(i))
+            visualizer.visualize_results(eval_result[k][2], eval_result[k][0], eval_result[k][1], title=k + "_i{}".format(i))
 
 
 if __name__ == '__main__':
@@ -181,13 +192,19 @@ if __name__ == '__main__':
     parser.add_argument('--seq_length_in', required=False, type=int, help="Seed sequence length")
     parser.add_argument('--seq_length_out', required=False, type=int, help="Target sequence length")
     parser.add_argument('--batch_size', required=False, default=64, type=int, help="Batch size")
-    
+
     parser.add_argument('--visualize', required=False, action="store_true",
                         help="Visualize ground-truth and predictions side-by-side by using human skeleton.")
+    parser.add_argument('--no_skel', required=False, action="store_true",
+                        help='Dont show skeleton in offline visualization.')
+    parser.add_argument('--no_mesh', required=False,
+                        action="store_true", help='Dont show mesh in offline visualization')
+    parser.add_argument('--to_video', required=False, action="store_true",
+                        help='Save the model predictions to mp4 videos in the experiments folder.')
+    # TODO(eaksan) How is this intended to be used?
     parser.add_argument('--visualize_smpl', required=False, action="store_true",
                         help="Visualize only predictions by using smpl mesh.")
-    parser.add_argument('--save_video', required=False, action="store_true",
-                        help="Save the model predictions to mp4 videos in the experiments folder.")
+    # TODO(eaksan) at the moment, all frames are always saved
     parser.add_argument('--save_frames', required=False, action="store_true",
                         help="Save the model predictions to individual pngs in a temporary folder")
     parser.add_argument('--dynamic_test_split', required=False, action="store_true",
