@@ -1,4 +1,8 @@
+"""Conversion functions."""
+
 import numpy as np
+import quaternion
+import cv2
 
 
 def rad2deg(v):
@@ -260,5 +264,4 @@ def local_rot_to_global(joint_angles, parents, rep="rotmat", left_mult=False):
             lm = local_rot if left_mult else parent_rot
             rm = parent_rot if left_mult else local_rot
             out[..., j, :, :] = np.matmul(lm, rm)
-
     return out

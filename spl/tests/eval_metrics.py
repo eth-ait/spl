@@ -6,7 +6,7 @@ We calculate the metrics between the last 60 frames of test samples and the repe
 import os
 import numpy as np
 import tensorflow as tf
-from data.amass_tf import TFRecordMotionDataset
+from spl.data.amass_tf import TFRecordMotionDataset
 from metrics.motion_metrics import MetricsEngine
 from visualization.fk import SMPLForwardKinematics
 

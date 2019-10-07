@@ -2,7 +2,7 @@ import tensorflow as tf
 import functools
 
 from common.constants import Constants as C
-from data.amass_tf import TFRecordMotionDataset
+from spl.data.amass_tf import TFRecordMotionDataset
 
 
 class SRNNTFRecordMotionDataset(TFRecordMotionDataset):

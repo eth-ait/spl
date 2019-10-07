@@ -12,9 +12,9 @@ import numpy as np
 import tensorflow as tf
 
 from common.constants import Constants as C
-from data.amass_tf import TFRecordMotionDataset
-from data.srnn_tf import SRNNTFRecordMotionDataset
-from model.zero_velocity import ZeroVelocityBaseline
+from spl.data.amass_tf import TFRecordMotionDataset
+from spl.data.srnn_tf import SRNNTFRecordMotionDataset
+from spl.model.zero_velocity import ZeroVelocityBaseline
 
 from visualization.fk import H36MForwardKinematics
 from visualization.fk import SMPLForwardKinematics

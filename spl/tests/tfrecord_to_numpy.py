@@ -7,7 +7,7 @@ to train a pytorch model.
 import os
 import numpy as np
 import tensorflow as tf
-from data.amass_tf import TFRecordMotionDataset
+from spl.data.amass_tf import TFRecordMotionDataset
 tf.enable_eager_execution()
 
 # Here we load full-length test dataset in rotation matrix format. You can set the path manually.

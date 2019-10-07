@@ -1,7 +1,7 @@
 import time
 import tensorflow as tf
 
-from model.base_model import BaseModel
+from spl.model.base_model import BaseModel
 
 
 class ZeroVelocityBaseline(BaseModel):

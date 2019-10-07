@@ -4,7 +4,7 @@ import os
 import functools
 
 from common.constants import Constants as C
-from data.base_dataset import Dataset
+from spl.data.base_dataset import Dataset
 
 
 class TFRecordMotionDataset(Dataset):
