@@ -6,10 +6,10 @@ import argparse
 import numpy as np
 import tensorflow as tf
 
-from common.constants import Constants as C
-from data.amass_tf import TFRecordMotionDataset
-from model.zero_velocity import ZeroVelocityBaseline
+from spl.data.amass_tf import TFRecordMotionDataset
+from spl.model.zero_velocity import ZeroVelocityBaseline
 
+from common.constants import Constants as C
 from visualization.render import Visualizer
 from visualization.fk import H36MForwardKinematics
 from visualization.fk import SMPLForwardKinematics
@@ -135,23 +135,21 @@ def evaluate(session, test_model, test_data, args, eval_dir, use_h36m):
             final_metrics = _metrics_engine.get_final_metrics()
         return final_metrics, _eval_result
 
-    print("Evaluating test set ...")
+    print("Evaluating test set...")
     test_metrics, eval_result = evaluate_model(test_model, test_iter, metrics_engine)
     print(metrics_engine.get_summary_string_all(test_metrics, target_lengths, pck_thresholds))
 
     if args.visualize:
+        data_representation = "quat" if test_model.use_quat else "aa" if test_model.use_aa else "rotmat"
         # visualize some random samples stored in `eval_result` which is a dict id -> (prediction, seed, target)
         if not args.to_video:
-            visualizer = Visualizer(interactive=True, fk_engine=fk_engine,
-                                    rep="quat" if test_model.use_quat else "aa" if test_model.use_aa else "rot_mat")
+            visualizer = Visualizer(interactive=True, fk_engine=fk_engine, rep=data_representation)
         else:
-            visualizer = Visualizer(interactive=False,
-                                    rep="quat" if test_model.use_quat else "aa" if test_model.use_aa else "rot_mat",
+            visualizer = Visualizer(interactive=False, fk_engine=fk_engine, rep=data_representation,
                                     output_dir=eval_dir, skeleton=not args.no_skel, dense=not args.no_mesh,
                                     to_video=args.to_video)
 
         n_samples_viz = 30
-
         # Get random indices or just all of them.
         rng = np.random.RandomState(4313)
         idxs = rng.randint(0, len(eval_result), size=n_samples_viz)
@@ -168,6 +166,7 @@ def evaluate(session, test_model, test_data, args, eval_dir, use_h36m):
                             'BioMotion/0/BioMotion/rub0220001_treadmill_fast_dynamics',
                             'Transition/0/Transition/mazen_c3dairkick_walkbackwards',
                             'CMU/0/CMU/01_01_06']
+        print("Visualizing samples...")
         for i, k in enumerate(sample_keys):
             visualizer.visualize_results(eval_result[k][2], eval_result[k][0], eval_result[k][1], title=k + "_i{}".format(i))
 
@@ -201,12 +200,6 @@ if __name__ == '__main__':
                         action="store_true", help='Dont show mesh in offline visualization')
     parser.add_argument('--to_video', required=False, action="store_true",
                         help='Save the model predictions to mp4 videos in the experiments folder.')
-    # TODO(eaksan) How is this intended to be used?
-    parser.add_argument('--visualize_smpl', required=False, action="store_true",
-                        help="Visualize only predictions by using smpl mesh.")
-    # TODO(eaksan) at the moment, all frames are always saved
-    parser.add_argument('--save_frames', required=False, action="store_true",
-                        help="Save the model predictions to individual pngs in a temporary folder")
     parser.add_argument('--dynamic_test_split', required=False, action="store_true",
                         help="Test samples are extracted on-the-fly.")
 

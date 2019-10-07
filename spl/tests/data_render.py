@@ -6,7 +6,7 @@ to train a pytorch model.
 """
 import os
 import tensorflow as tf
-from data.amass_tf import TFRecordMotionDataset
+from spl.data.amass_tf import TFRecordMotionDataset
 from visualization.fk import SMPLForwardKinematics
 from visualization.render import Visualizer
 tf.enable_eager_execution()
@@ -14,7 +14,7 @@ tf.enable_eager_execution()
 # Here we visualize a window of 180 frames from full-length test dataset in rotation matrix format.
 DATA_PATH = os.path.join(os.environ["AMASS_DATA"], "rotmat", "test_dynamic", "amass-?????-of-?????")
 META_DATA_PATH = os.path.join(os.environ["AMASS_DATA"], "rotmat", "training", "stats.npz")
-SAVE_DIR = "./tmp_samples/"
+SAVE_DIR = "spl/tests/tmp_samples/"
 
 # Create dataset object.
 tf_data = TFRecordMotionDataset(data_path=DATA_PATH,
@@ -29,12 +29,14 @@ data_iter_ = tf_data.get_iterator()
 batch = data_iter_.get_next()
 
 fk_engine = SMPLForwardKinematics()
-visualizer = Visualizer(fk_engine, output_dir=SAVE_DIR, rep="rotmat")
+visualizer = Visualizer(interactive=False, fk_engine=fk_engine, rep="rotmat", output_dir=SAVE_DIR, skeleton=True,
+                        dense=True, to_video=True)
 
 pose_seq = batch["inputs"].numpy()
 pose_name = batch["id"].numpy()[0].decode("utf-8")
-if smpl_model is None:
-    # Visualize skeleton.
-    visualizer.visualize_skeleton(pose_seq, pose_name, frames_dir=SAVE_DIR)
-else:
-    visualizer.visualize_dense_smpl(pose_seq, pose_name)
+
+# Visualize skeleton.
+try:
+    visualizer.create_clip_smpl(pose_seq, pose_name)
+except:
+    visualizer.create_clip_skeleton(pose_seq, pose_name)
