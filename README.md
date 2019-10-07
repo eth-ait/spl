@@ -1,5 +1,7 @@
 # Structured Prediction Helps 3D Human Motion Modelling 
-Code repository for our paper presented at ICCV '19.
+Code repository for [our paper](https://ait.ethz.ch/projects/2019/spl/) presented at ICCV '19. 
+
+We provide data preprocessing scripts, training pipeline, evaluation and visualization tools. Model implementation and pre-trained models will come soon. 
 
 ### Required packages
 We recommend creating a virtual environment and install the required packages by running:
@@ -41,7 +43,7 @@ cd <path-to-this-repository>
 python spl/training.py --model_type zero_velocity --data_type rotmat
 ```
 With a unique timestamp, the experiment is stored under `AMASS_EXPERIMENTS` or the given target directory if you run the training command with `--data_dir` flag.
-See flags and possible choices in `spl/training.py`. 
+See flags and possible choices in `spl/training.py`. We will add our model and the baselines soon.
 
 ### Evaluation
 You can evaluate and/or visualize models after training. The following command visualizes clips of 60 frames by evaluating the model on the test dataset with full sequences.
@@ -50,7 +52,7 @@ See flags and possible choices in `spl/evaluation.py`.
 python spl/evaluation.py --model_id <experiment-timestamp> --visualize --seq_length_out 60 --dynamic_test_split
 ```
 
-Please note that by default the visualization code displays interactive animations using matplotlib. To make interactive frame-rates possible, only the skeleton is displayed. You can also display the full SMPL mesh if you add the `--to_video` option. However for this you need the SMPL model, which we cannot supply with this code repo for licensing reasons. If you are interested in this option, the best option is to download the latest code from the AMASS repo and integrate it with our repo. Feel free to contact us if you have questions about this.
+Please note that by default the visualization code displays interactive animations using matplotlib. To make interactive frame-rates possible, only the skeleton is displayed. You can also create videos of the full SMPL mesh or skeleton by adding the `--to_video` option. However, in order to get videos with SMPL mesh, you need the SMPL model, which we cannot provide due to licensing issues. If you are interested in using SMPL, the best option is to download the latest code from the AMASS repo and integrate it with our repo. Feel free to contact us if you have questions about this.
 
 ### Sample scripts
 Under `spl/test/`, we share sample scripts showing how to use components (i.e., metrics, visualization, tfrecord data) of this repository without requiring the entire pipeline.   
