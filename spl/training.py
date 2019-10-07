@@ -184,11 +184,8 @@ def create_model(session):
     if config["use_h36m"]:
         # create model and data for SRNN evaluation
         with tf.name_scope("srnn_data"):
-            srnn_dir = "srnn_poses"
-            extract_windows_of = 120  # 100 = 2 seconds input, 20 = 400 ms output
-            if config.get("use_25fps", False):
-                srnn_dir += "_25fps"
-                extract_windows_of = 60
+            srnn_dir = "srnn_poses_25fps"
+            extract_windows_of = 60
             srnn_path = os.path.join(data_dir, config["data_type"], srnn_dir, "amass-?????-of-?????")
             srnn_data = SRNNTFRecordMotionDataset(data_path=srnn_path,
                                                   meta_data_path=meta_data_path,
@@ -275,7 +272,7 @@ def train():
         pck_thresholds = C.METRIC_PCK_THRESHS  # thresholds for pck, in meters
         if config["use_h36m"]:
             fk_engine = H36MForwardKinematics()
-            tls = C.METRIC_TARGET_LENGTHS_H36M_25FPS if config.get("use_25fps", False) else C.METRIC_TARGET_LENGTHS_H36M
+            tls = C.METRIC_TARGET_LENGTHS_H36M_25FPS
             target_lengths = [x for x in tls if x <= train_model.target_seq_len]
         else:
             target_lengths = [x for x in C.METRIC_TARGET_LENGTHS_AMASS if x <= train_model.target_seq_len]
@@ -475,20 +472,43 @@ def train():
         print("End of Training.")
         load_latest_checkpoint(sess, saver, experiment_dir)
 
-        print("Evaluating validation set ...")
-        valid_metrics, valid_time, _ = evaluate_model(valid_model, valid_iter, metrics_engine)
-        print("Valid [{:04d}] \t {} \t total_time: {:.3f}".format(step - 1,
-                                                                  metrics_engine.get_summary_string(valid_metrics),
-                                                                  valid_time))
+        if not config["use_h36m"]:
+            print("Evaluating validation set...")
+            valid_metrics, valid_time, _ = evaluate_model(valid_model, valid_iter, metrics_engine)
+            print("Valid [{:04d}] \t {} \t total_time: {:.3f}".format(step - 1,
+                                                                      metrics_engine.get_summary_string(valid_metrics),
+                                                                      valid_time))
+            
+            print("Evaluating test set...")
+            test_metrics, test_time, _ = evaluate_model(test_model, test_iter, metrics_engine)
+            print("Test [{:04d}] \t {} \t total_time: {:.3f}".format(step - 1,
+                                                                     metrics_engine.get_summary_string_all(
+                                                                         test_metrics,
+                                                                         target_lengths,
+                                                                         pck_thresholds),
+                                                                     test_time))
+        else:
+            predictions_euler, _ = _evaluate_srnn_poses(srnn_model, srnn_iter, srnn_gts)
+            which_actions = ['walking', 'eating', 'discussion', 'smoking']
 
-        print("Evaluating test set ...")
-        test_metrics, test_time, _ = evaluate_model(test_model, test_iter, metrics_engine)
-        print("Test [{:04d}] \t {} \t total_time: {:.3f}".format(step - 1,
-                                                                 metrics_engine.get_summary_string_all(test_metrics,
-                                                                                                       target_lengths,
-                                                                                                       pck_thresholds),
-                                                                 test_time))
-        print("Done!")
+            print("{:<10}".format(""), end="")
+            for ms in [80, 160, 320, 400]:
+                print("  {0:4d}  ".format(ms), end="")
+            print()
+            for action in which_actions:
+                # get the mean over all samples for that action
+                assert len(predictions_euler[action]) == 8
+                euler_mean = np.mean(np.stack(predictions_euler[action]), axis=0)
+                s = "{:<10}:".format(action)
+        
+                # get the metrics at the time-steps:
+                at_idxs = [1, 3, 7, 9]
+                s += " {:.3f} \t{:.3f} \t{:.3f} \t{:.3f}".format(euler_mean[at_idxs[0]],
+                                                                 euler_mean[at_idxs[1]],
+                                                                 euler_mean[at_idxs[2]],
+                                                                 euler_mean[at_idxs[3]])
+                print(s)
+        print("\nDone!")
 
 
 def main(argv):
