@@ -15,6 +15,7 @@ from common.constants import Constants as C
 from spl.data.amass_tf import TFRecordMotionDataset
 from spl.data.srnn_tf import SRNNTFRecordMotionDataset
 from spl.model.zero_velocity import ZeroVelocityBaseline
+from spl.model.rnn import RNN
 
 from visualization.fk import H36MForwardKinematics
 from visualization.fk import SMPLForwardKinematics
@@ -23,32 +24,50 @@ from visualization.fk import H36M_MAJOR_JOINTS
 from metrics.motion_metrics import MetricsEngine
 from common.utils import rotmat2euler, aa2rotmat
 
+
+tf.app.flags.DEFINE_integer("seed", 1234, "Seed value.")
 tf.app.flags.DEFINE_string("experiment_id", None, "Unique experiment id to restore an existing model.")
 tf.app.flags.DEFINE_string("data_dir", None,
                            "Path to data. If not passed, then AMASS_DATA environment variable is used.")
 tf.app.flags.DEFINE_string("save_dir", None,
                            "Path to experiments. If not passed, then AMASS_EXPERIMENTS environment variable is used.")
-
-tf.app.flags.DEFINE_enum("model_type", "zero_velocity", ["zero_velocity"], "Which model: only `zero_velocity` for now.")
+# Data
 tf.app.flags.DEFINE_enum("data_type", "rotmat", ["rotmat", "aa", "quat"],
                          "Which data representation: rotmat (rotation matrix), aa (angle axis), quat (quaternion).")
-
 tf.app.flags.DEFINE_boolean("use_h36m", False, "Use H36M for training and validation.")
 tf.app.flags.DEFINE_boolean("no_normalization", False, "If set, do not use zero-mean unit-variance normalization.")
-tf.app.flags.DEFINE_boolean("exhaustive_validation", False, "Use entire validation samples (takes much longer).")
-tf.app.flags.DEFINE_integer("early_stopping_tolerance", 20, "# of waiting steps until the validation loss improves.")
-
-tf.app.flags.DEFINE_integer("seed", 1234, "Seed value.")
-tf.app.flags.DEFINE_integer("batch_size", 16, "Batch size to use during training.")
+tf.app.flags.DEFINE_integer("source_seq_len", 120, "Number of frames to feed into the encoder.")
+tf.app.flags.DEFINE_integer("target_seq_len", 24, "Number of frames that the decoder has to predict.")
+tf.app.flags.DEFINE_integer("batch_size", 64, "Batch size to use during training.")
+# Training loop.
 tf.app.flags.DEFINE_integer("num_epochs", 500, "Training epochs.")
-
-tf.app.flags.DEFINE_integer("seq_length_in", 120, "Number of frames to feed into the encoder.")
-tf.app.flags.DEFINE_integer("seq_length_out", 24, "Number of frames that the decoder has to predict.")
-
 tf.app.flags.DEFINE_integer("print_frequency", 100, "Print/log every this many training steps.")
 tf.app.flags.DEFINE_integer("test_frequency", 1000, "Runs validation every this many training steps.")
-
-
+tf.app.flags.DEFINE_boolean("exhaustive_validation", False, "Use entire validation samples (takes much longer).")
+tf.app.flags.DEFINE_integer("early_stopping_tolerance", 20, "# of waiting steps until the validation loss improves.")
+# Optimization.
+tf.app.flags.DEFINE_float("learning_rate", .001, "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate_decay_rate", 0.98, "Learning rate multiplier. See tf.exponential_decay.")
+tf.app.flags.DEFINE_integer("learning_rate_decay_steps", 1000, "Decay steps. See tf.exponential_decay.")
+tf.app.flags.DEFINE_enum("optimizer", "adam", ["adam", "sgd"], "Optimization function type.")
+tf.app.flags.DEFINE_float("grad_clip_norm", 1.0, "Clip gradients to this norm. If 0, gradient clipping is not applied.")
+# Model
+tf.app.flags.DEFINE_enum("model_type", "rnn", ["rnn", "zero_velocity"], "Which model to use.")
+tf.app.flags.DEFINE_float("input_dropout_rate", 0.1, "Dropout rate on the inputs.")
+tf.app.flags.DEFINE_integer("input_hidden_layers", 1, "# of hidden layers directly on the inputs.")
+tf.app.flags.DEFINE_integer("input_hidden_size", 256, "Size of hidden layers directly on the inputs.")
+tf.app.flags.DEFINE_enum("cell_type", "lstm", ["lstm", "gru"], "RNN cell type: gru or lstm.")
+tf.app.flags.DEFINE_integer("cell_size", 1024, "RNN cell size.")
+tf.app.flags.DEFINE_integer("cell_layers", 1, "Number of cells in the RNN model.")
+tf.app.flags.DEFINE_boolean("residual_velocity", True, "Add a residual connection that effectively models velocities.")
+tf.app.flags.DEFINE_enum("loss_type", "joint_sum", ["joint_sum", "all_mean"], "Joint-wise or vanilla mean loss.")
+tf.app.flags.DEFINE_enum("joint_prediction_layer", "spl", ["spl", "spl_sparse", "plain"],
+                         "Whether to use structured prediction layer (sparse or dense) "
+                         "or a standard dense layer to make predictions.")
+tf.app.flags.DEFINE_integer("output_hidden_layers", 1, "# of hidden layers in the prediction layer.")
+tf.app.flags.DEFINE_integer("output_hidden_size", 64, "Size of hidden layers in the prediction layer. It is not scaled "
+                                                      "based on joint_prediction_layer. If it is `plain`, "
+                                                      "then it is recommended to pass a larger value (i.e., 960)")
 args = tf.app.flags.FLAGS
 
 
@@ -68,6 +87,8 @@ def load_latest_checkpoint(sess, saver, experiment_dir):
 def get_model_cls(model_type):
     if model_type == C.MODEL_ZERO_VEL:
         return ZeroVelocityBaseline
+    elif model_type == C.MODEL_RNN:
+        return RNN
     else:
         raise Exception("Unknown model type.")
     

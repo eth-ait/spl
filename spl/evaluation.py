@@ -8,6 +8,7 @@ import tensorflow as tf
 
 from spl.data.amass_tf import TFRecordMotionDataset
 from spl.model.zero_velocity import ZeroVelocityBaseline
+from spl.model.rnn import RNN
 
 from common.constants import Constants as C
 from visualization.render import Visualizer
@@ -32,6 +33,8 @@ def load_latest_checkpoint(session, saver, experiment_dir):
 def get_model_cls(model_type):
     if model_type == C.MODEL_ZERO_VEL:
         return ZeroVelocityBaseline
+    elif model_type == C.MODEL_RNN:
+        return RNN
     else:
         raise Exception("Unknown model type.")
 
@@ -47,7 +50,6 @@ def create_and_restore_model(session, experiment_dir, data_dir, config, dynamic_
         data_split = "test_dynamic"
     else:
         assert window_length <= 180, "TFRecords are hardcoded with length of 180."
-        window_length = 0
         data_split = "test"
     
     test_data_path = os.path.join(data_dir, config["data_type"], data_split, "amass-?????-of-?????")

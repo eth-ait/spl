@@ -23,17 +23,20 @@ class ZeroVelocityBaseline(BaseModel):
     def build_network(self):
         # Don't do anything, just repeat the last known pose.
         last_known_pose = self.prediction_inputs[:, 0:1]
-        self.outputs = tf.tile(last_known_pose, [1, self.target_seq_len, 1])
+        return tf.tile(last_known_pose, [1, self.target_seq_len, 1])
 
     def build_loss(self):
         # Build a loss operation so that training script doesn't complain.
         d = self._dummy - self._dummy
-        self.loss = tf.reduce_mean(tf.reduce_sum(d*d))
+        return tf.reduce_mean(tf.reduce_sum(d*d))
         
     def summary_routines(self):
         # Build a summary operation so that training script doesn't complain.
         tf.summary.scalar(self.mode+"/loss", self.loss, collections=[self.mode+"/model_summary"])
         self.summary_update = tf.summary.merge_all(self.mode + "/model_summary")
+    
+    def optimization_routines(self):
+        pass
     
     def step(self, session):
         output_feed = [self.loss,
@@ -68,8 +71,8 @@ class ZeroVelocityBaseline(BaseModel):
     
         config['no_normalization'] = args.no_normalization
         config['batch_size'] = args.batch_size
-        config['source_seq_len'] = args.seq_length_in
-        config['target_seq_len'] = args.seq_length_out
+        config['source_seq_len'] = args.source_seq_len
+        config['target_seq_len'] = args.target_seq_len
     
         config['num_epochs'] = 0
         config['print_frequency'] = args.print_frequency
@@ -83,6 +86,6 @@ class ZeroVelocityBaseline(BaseModel):
                                                         "h36m" if args.use_h36m else "amass",
                                                         args.data_type,
                                                         args.batch_size,
-                                                        args.seq_length_in,
-                                                        args.seq_length_out)
+                                                        args.source_seq_len,
+                                                        args.target_seq_len)
         return config, experiment_name

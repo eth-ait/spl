@@ -6,6 +6,7 @@ class Constants(object):
     
     # Model types.
     MODEL_ZERO_VEL = "zero_velocity"
+    MODEL_RNN = "rnn"
     
     # Pre-defined colors for plots.
     RGB_COLORS = [np.array((0, 13, 53)), np.array((0, 91, 149)), np.array((171, 19, 19)), np.array((254, 207, 103)),
@@ -63,8 +64,6 @@ class Constants(object):
 
     LOSS_POSE_ALL_MEAN = "all_mean"
     LOSS_POSE_JOINT_SUM = "joint_sum"
-    LOSS_POSE_JOINT_MEAN = "joint_mean"
-    LOSS_POSE_NORMAL = "normal"
 
     LOSS_ACTION_CENT = "cross_entropy"
     LOSS_ACTION_L2 = "l2"
