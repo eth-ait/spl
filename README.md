@@ -45,6 +45,8 @@ python spl/training.py --model_type zero_velocity --data_type rotmat
 With a unique timestamp, the experiment is stored under `AMASS_EXPERIMENTS` or the given target directory if you run the training command with `--data_dir` flag.
 See flags and possible choices in `spl/training.py`. We will add our model and the baselines soon.
 
+You can easily extend this repo by implementing a new model. Please see the docstring of `spl.model.base_model.py` to read about the interface.
+
 ### Evaluation
 You can evaluate and/or visualize models after training. The following command visualizes clips of 60 frames by evaluating the model on the test dataset with full sequences.
 See flags and possible choices in `spl/evaluation.py`. 
