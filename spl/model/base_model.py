@@ -229,51 +229,55 @@ class BaseModel(object):
         self.summary_update = tf.summary.merge_all(self.mode + "/model_summary")
 
     @classmethod
-    def get_model_config(cls, args):
+    def get_model_config(cls, args, from_config=None):
         """Given command-line arguments, creates the configuration dictionary.
-        
+
         It is later passed to the models and stored in the disk.
         Args:
             args: command-line argument object.
+            from_config: use an already existing config dictionary.
         Returns:
             experiment configuration (dict), experiment name (str)
         """
-        config = dict()
-        config['seed'] = args.seed
-        config['model_type'] = args.model_type
-        config['data_type'] = args.data_type
-        config['use_h36m'] = args.use_h36m
-
-        config['no_normalization'] = args.no_normalization
-        config['batch_size'] = args.batch_size
-        config['source_seq_len'] = args.source_seq_len
-        config['target_seq_len'] = args.target_seq_len
-        
-        config['early_stopping_tolerance'] = args.early_stopping_tolerance
-        config['num_epochs'] = args.num_epochs
-        config['print_frequency'] = args.print_frequency
-        config['test_frequency'] = args.test_frequency
-        
-        config['learning_rate'] = args.learning_rate
-        config['learning_rate_decay_steps'] = args.learning_rate_decay_steps
-        config['learning_rate_decay_rate'] = args.learning_rate_decay_rate
-        config['grad_clip_norm'] = args.grad_clip_norm
-        config['optimizer'] = args.optimizer
-
-        config['input_hidden_layers'] = args.input_hidden_layers
-        config['input_hidden_size'] = args.input_hidden_size
-        config['input_dropout_rate'] = args.input_dropout_rate
-
-        config["cell_type"] = args.cell_type
-        config["cell_size"] = args.cell_size
-        config["cell_layers"] = args.cell_layers
-        
-        config['output_hidden_layers'] = args.output_hidden_layers
-        config['output_hidden_size'] = args.output_hidden_size
-        
-        config['residual_velocity'] = args.residual_velocity
-        config['loss_type'] = args.loss_type
-        config['joint_prediction_layer'] = args.joint_prediction_layer
+        if from_config is None:
+            config = dict()
+            config['seed'] = args.seed
+            config['model_type'] = args.model_type
+            config['data_type'] = args.data_type
+            config['use_h36m'] = args.use_h36m
+    
+            config['no_normalization'] = args.no_normalization
+            config['batch_size'] = args.batch_size
+            config['source_seq_len'] = args.source_seq_len
+            config['target_seq_len'] = args.target_seq_len
+            
+            config['early_stopping_tolerance'] = args.early_stopping_tolerance
+            config['num_epochs'] = args.num_epochs
+            config['print_frequency'] = args.print_frequency
+            config['test_frequency'] = args.test_frequency
+            
+            config['learning_rate'] = args.learning_rate
+            config['learning_rate_decay_steps'] = args.learning_rate_decay_steps
+            config['learning_rate_decay_rate'] = args.learning_rate_decay_rate
+            config['grad_clip_norm'] = args.grad_clip_norm
+            config['optimizer'] = args.optimizer
+    
+            config['input_hidden_layers'] = args.input_hidden_layers
+            config['input_hidden_size'] = args.input_hidden_size
+            config['input_dropout_rate'] = args.input_dropout_rate
+    
+            config["cell_type"] = args.cell_type
+            config["cell_size"] = args.cell_size
+            config["cell_layers"] = args.cell_layers
+            
+            config['output_hidden_layers'] = args.output_hidden_layers
+            config['output_hidden_size'] = args.output_hidden_size
+            
+            config['residual_velocity'] = args.residual_velocity
+            config['loss_type'] = args.loss_type
+            config['joint_prediction_layer'] = args.joint_prediction_layer
+        else:
+            config = from_config
 
         config["experiment_id"] = str(int(time.time()))
         experiment_name_format = "{}-{}-{}_{}-b{}-in{}_out{}"

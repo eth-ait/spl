@@ -151,8 +151,17 @@ class RNN(BaseModel):
         return np.concatenate(predictions, axis=1)
     
     @classmethod
-    def get_model_config(cls, args):
-        config, experiment_name = super(RNN, cls).get_model_config(args)
+    def get_model_config(cls, args, from_config=None):
+        """Given command-line arguments, creates the configuration dictionary.
+
+        It is later passed to the models and stored in the disk.
+        Args:
+            args: command-line argument object.
+            from_config: use an already existing config dictionary.
+        Returns:
+            experiment configuration (dict), experiment name (str)
+        """
+        config, experiment_name = super(RNN, cls).get_model_config(args, from_config)
         
         experiment_name_format = "{}-{}-{}_{}-{}_{}-b{}-in{}_out{}-{}_{}x{}-{}"
         experiment_name = experiment_name_format.format(config["experiment_id"],

@@ -54,32 +54,35 @@ class ZeroVelocityBaseline(BaseModel):
         return prediction, targets, seed_sequence, data_id
 
     @classmethod
-    def get_model_config(cls, args):
+    def get_model_config(cls, args, from_config=None):
         """Given command-line arguments, creates the configuration dictionary.
 
         It is later passed to the models and stored in the disk.
         Args:
             args: command-line argument object.
+            from_config: use an already existing config dictionary.
         Returns:
             experiment configuration (dict), experiment name (str)
         """
-        config = dict()
-        config['seed'] = args.seed
-        config['model_type'] = args.model_type
-        config['data_type'] = args.data_type
-        config['use_h36m'] = args.use_h36m
-    
-        config['no_normalization'] = args.no_normalization
-        config['batch_size'] = args.batch_size
-        config['source_seq_len'] = args.source_seq_len
-        config['target_seq_len'] = args.target_seq_len
-    
-        config['num_epochs'] = 0
-        config['print_frequency'] = args.print_frequency
-        config['test_frequency'] = args.test_frequency
+        if from_config is None:
+            config = dict()
+            config['seed'] = args.seed
+            config['model_type'] = args.model_type
+            config['data_type'] = args.data_type
+            config['use_h36m'] = args.use_h36m
+        
+            config['no_normalization'] = args.no_normalization
+            config['batch_size'] = args.batch_size
+            config['source_seq_len'] = args.source_seq_len
+            config['target_seq_len'] = args.target_seq_len
+        
+            config['num_epochs'] = 0
+            config['print_frequency'] = args.print_frequency
+            config['test_frequency'] = args.test_frequency
+        else:
+            config = from_config
     
         config["experiment_id"] = str(int(time.time()))
-    
         experiment_name_format = "{}-{}-{}_{}-b{}-in{}_out{}"
         experiment_name = experiment_name_format.format(config["experiment_id"],
                                                         args.model_type,

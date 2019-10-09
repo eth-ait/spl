@@ -31,6 +31,9 @@ tf.app.flags.DEFINE_string("data_dir", None,
                            "Path to data. If not passed, then AMASS_DATA environment variable is used.")
 tf.app.flags.DEFINE_string("save_dir", None,
                            "Path to experiments. If not passed, then AMASS_EXPERIMENTS environment variable is used.")
+tf.app.flags.DEFINE_string("from_config", None,
+                           "Path to an existing config.json to start a new experiment.")
+# If from_config is used, the rest will be ignored.
 # Data
 tf.app.flags.DEFINE_enum("data_type", "rotmat", ["rotmat", "aa", "quat"],
                          "Which data representation: rotmat (rotation matrix), aa (angle axis), quat (quaternion).")
@@ -102,12 +105,17 @@ def create_model(session):
     # Load an existing config or initialize one based on the command-line arguments.
     if args.experiment_id is not None:
         experiment_dir = glob.glob(os.path.join(save_dir, args.experiment_id + "-*"), recursive=False)[0]
-        config = json.load(open(os.path.join(experiment_dir, "config.json")))
+        config = json.load(open(os.path.join(experiment_dir, "config.json"), "r"))
         model_cls = get_model_cls(config["model_type"])
     else:
         # Initialize config and experiment name.
-        model_cls = get_model_cls(args.model_type)
-        config, experiment_name = model_cls.get_model_config(args)
+        if args.from_config is not None:
+            from_config = json.load(open(args.from_config, "r"))
+            model_cls = get_model_cls(from_config["model_type"])
+        else:
+            from_config = None
+            model_cls = get_model_cls(args.model_type)
+        config, experiment_name = model_cls.get_model_config(args, from_config)
         experiment_dir = os.path.normpath(os.path.join(save_dir, experiment_name))
         os.mkdir(experiment_dir)
 
