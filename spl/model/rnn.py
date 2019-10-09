@@ -2,7 +2,7 @@
 
 import numpy as np
 import tensorflow as tf
-import spl.model.tf_model_utils as model_utils
+import spl.util.tf_utils as model_utils
 from spl.model.base_model import BaseModel
 from common.constants import Constants as C
 

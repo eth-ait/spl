@@ -83,20 +83,19 @@ class SPL(object):
         """
         joint_predictions = dict()
         
-        with tf.variable_scope('output_layer', reuse=self.reuse):
-            for joint_key in self.prediction_order:
-                parent_joint_ids, joint_id, joint_name = self.indexed_skeleton[joint_key]
-                joint_inputs = [context]
+        for joint_key in self.prediction_order:
+            parent_joint_ids, joint_id, joint_name = self.indexed_skeleton[joint_key]
+            
+            joint_inputs = [context]
+            for parent_joint_id in parent_joint_ids:
+                joint_inputs.append(joint_predictions[parent_joint_id])
 
-                for parent_joint_id in parent_joint_ids:
-                    joint_inputs.append(joint_predictions[parent_joint_id])
-
-                joint_predictions[joint_id] = self._predict_joint(tf.concat(joint_inputs, axis=-1),
-                                                                  self.joint_size,
-                                                                  joint_name)
-            # Concatenate joints.
-            pose_prediction = tf.concat(list(joint_predictions.values()), axis=-1)
-            assert pose_prediction.get_shape()[-1] == self.human_size, "Prediction not matching with the skeleton."
+            joint_predictions[joint_id] = self._predict_joint(tf.concat(joint_inputs, axis=-1),
+                                                              self.joint_size,
+                                                              joint_name)
+        # Concatenate joints.
+        pose_prediction = tf.concat(list(joint_predictions.values()), axis=-1)
+        assert pose_prediction.get_shape()[-1] == self.human_size, "Prediction not matching with the skeleton."
         return pose_prediction
             
     def _predict_joint(self, inputs, output_size, name):
@@ -112,8 +111,8 @@ class SPL(object):
         """
         current_layer = inputs
         for layer_idx in range(self.per_joint_layers):
-            with tf.variable_scope('out_dense_' + name + "_" + str(layer_idx), reuse=self.reuse):
+            with tf.variable_scope('out_dense_' + name + "_" + str(layer_idx), reuse=tf.AUTO_REUSE):
                 current_layer = tf.layers.dense(inputs=current_layer, units=self.per_joint_units, activation=tf.nn.relu)
 
-        with tf.variable_scope('out_dense_' + name + "_" + str(self.per_joint_layers), reuse=self.reuse):
+        with tf.variable_scope('out_dense_' + name + "_" + str(self.per_joint_layers), reuse=tf.AUTO_REUSE):
             return tf.layers.dense(inputs=current_layer, units=output_size, activation=None)

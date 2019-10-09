@@ -179,14 +179,15 @@ class BaseModel(object):
             
         else:
             # Predict the pose vector by composing a hierarchy of joint specific networks.
-            spl_sparse = True if self.joint_prediction_layer == "spl_sparse" else False
-            sp_layer = SPL(hidden_layers=self.config["output_hidden_layers"],
-                           hidden_units=self.config["output_hidden_size"],
-                           joint_size=self.JOINT_SIZE,
-                           sparse=spl_sparse,
-                           use_h36m=self.use_h36m,
-                           reuse=self.reuse)
-            pose_prediction = sp_layer.build(inputs)
+            with tf.variable_scope('output_layer', reuse=self.reuse):
+                spl_sparse = True if self.joint_prediction_layer == "spl_sparse" else False
+                sp_layer = SPL(hidden_layers=self.config["output_hidden_layers"],
+                               hidden_units=self.config["output_hidden_size"],
+                               joint_size=self.JOINT_SIZE,
+                               sparse=spl_sparse,
+                               use_h36m=self.use_h36m,
+                               reuse=self.reuse)
+                pose_prediction = sp_layer.build(inputs)
         
         if self.residual_velocity:
             pose_prediction += self.prediction_inputs[:, 0:tf.shape(pose_prediction)[1], :self.HUMAN_SIZE]
