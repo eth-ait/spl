@@ -265,23 +265,3 @@ def local_rot_to_global(joint_angles, parents, rep="rotmat", left_mult=False):
             rm = parent_rot if left_mult else local_rot
             out[..., j, :, :] = np.matmul(lm, rm)
     return out
-
-
-def read_csv_as_float(filename):
-    """
-    Borrowed from SRNN code. Reads a csv and returns a float matrix.
-    https://github.com/asheshjain399/NeuralModels/blob/master/neuralmodels/utils.py#L34
-
-    Args
-      filename: string. Path to the csv file
-    Returns
-      returnArray: the read data in a float32 matrix
-    """
-    out_array = []
-    lines = open(filename).readlines()
-    for line in lines:
-        line = line.strip().split(',')
-        if len(line) > 0:
-            out_array.append(np.array([np.float32(x) for x in line]))
-
-    return np.array(out_array)

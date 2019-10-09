@@ -22,7 +22,7 @@ from visualization.fk import SMPLForwardKinematics
 from visualization.fk import H36M_MAJOR_JOINTS
 
 from metrics.motion_metrics import MetricsEngine
-from common.utils import rotmat2euler, aa2rotmat
+from common.conversions import rotmat2euler, aa2rotmat
 
 
 tf.app.flags.DEFINE_integer("seed", 1234, "Seed value.")

@@ -2,7 +2,7 @@ import numpy as np
 import quaternion
 import cv2
 
-from common.utils import sparse_to_full
+from common.conversions import sparse_to_full
 
 # This comes from Martinez' preprocessing, does not take into account root position.
 H36M_JOINTS_TO_IGNORE = [5, 10, 15, 20, 21, 22, 23, 28, 29, 30, 31]

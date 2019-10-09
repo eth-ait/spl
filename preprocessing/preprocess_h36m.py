@@ -8,7 +8,6 @@ import tensorflow as tf
 import cv2
 import quaternion
 
-from common.utils import read_csv_as_float
 from preprocessing.preprocess_dip import create_tfrecord_writers
 from preprocessing.preprocess_dip import write_tfexample
 from preprocessing.preprocess_dip import split_into_windows
@@ -17,6 +16,26 @@ from preprocessing.preprocess_dip import close_tfrecord_writers
 H36M_MAJOR_JOINTS = [0, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 24, 25, 26, 27]
 H36M_NR_JOINTS = 32
 RNG = np.random.RandomState(42)
+
+
+def read_csv_as_float(filename):
+    """
+    Borrowed from SRNN code. Reads a csv and returns a float matrix.
+    https://github.com/asheshjain399/NeuralModels/blob/master/neuralmodels/utils.py#L34
+
+    Args
+      filename: string. Path to the csv file
+    Returns
+      returnArray: the read data in a float32 matrix
+    """
+    out_array = []
+    lines = open(filename).readlines()
+    for line in lines:
+        line = line.strip().split(',')
+        if len(line) > 0:
+            out_array.append(np.array([np.float32(x) for x in line]))
+
+    return np.array(out_array)
 
 
 def to_tfexample(poses, file_id, db_name, one_hot):

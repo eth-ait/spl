@@ -4,8 +4,8 @@ import quaternion
 import tensorflow as tf
 import copy
 
-from common.utils import is_valid_rotmat, rotmat2euler, aa2rotmat
-from common.utils import get_closest_rotmat, sparse_to_full, local_rot_to_global
+from common.conversions import is_valid_rotmat, rotmat2euler, aa2rotmat
+from common.conversions import get_closest_rotmat, sparse_to_full, local_rot_to_global
 
 
 def pck(predictions, targets, thresh):

@@ -10,7 +10,14 @@ necessary information. Although we didn't pass it read-only, we assume that the 
 normalization operations. Hence, the data is passed automatically. We no longer need feed_dict during training.
 You can see `sampled_step` method implementation to do autoregressive sampling. Similarly, one can use tf.placeholder
 instead of tf.data. Is should be straightforward. You just need to create placeholders and pass them within a
-dictionary.
+dictionary. There are 4 data placeholders in `data_pl` dictionary:
+    - inputs
+    - targets
+    - seq_len
+    - id
+    where inputs and targets are the same since we pass the full sequence. In models, the seed and target sequences are
+    determined depending on the functionality. `id` is required to keep track of the source dataset or evaluate a
+    particular motion sample.
 
 Overall functionality is decomposed into a number of methods to enable code reusing as much as possible. Every
 trainable model class is expected to implement the following methods:

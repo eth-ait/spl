@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt, animation as animation
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from visualization.fk import SMPL_MAJOR_JOINTS, SMPL_NR_JOINTS, SMPL_PARENTS
-from common.utils import is_valid_rotmat, aa2rotmat, rotmat2aa, get_closest_rotmat, sparse_to_full
+from common.conversions import is_valid_rotmat, aa2rotmat, rotmat2aa, get_closest_rotmat, sparse_to_full
 
 try:
     from external.smpl_py3.smpl_webuser.serialization import load_model
