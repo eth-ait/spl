@@ -56,6 +56,16 @@ python spl/evaluation.py --model_id <experiment-timestamp> --visualize --seq_len
 
 Please note that by default the visualization code displays interactive animations using matplotlib. To make interactive frame-rates possible, only the skeleton is displayed. You can also create videos of the full SMPL mesh or skeleton by adding the `--to_video` option. However, in order to get videos with SMPL mesh, you need the SMPL model, which we cannot provide due to licensing issues. If you are interested in using SMPL, the best option is to download the latest code from the AMASS repo and integrate it with our repo. Feel free to contact us if you have questions about this.
 
+### Pre-trained Models
+In `pretrained_configs` folder, you can find the configuration we used. In order to re-run an experiment you can simply run:
+```
+python spl/training.py --from_config <path-to-a-model-config.json>
+``` 
+Due to the stochastic nature of training, you many not get exactly the same results. 
+However, you should get marginally better or worse models. If this is not the case, please contact us. 
+The models we used in the paper can be [downloaded from here](https://ait.ethz.ch/projects/2019/spl/downloads/spl_models.zip).
+You can run evaluation with them or visualize their results. Note that `QuaterNet` models are not there yet. 
+
 ### Sample scripts
 Under `spl/test/`, we share sample scripts showing how to use components (i.e., metrics, visualization, tfrecord data) of this repository without requiring the entire pipeline.   
 
