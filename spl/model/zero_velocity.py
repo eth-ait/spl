@@ -77,8 +77,6 @@ class ZeroVelocityBaseline(BaseModel):
             config['target_seq_len'] = args.target_seq_len
         
             config['num_epochs'] = 0
-            config['print_frequency'] = args.print_frequency
-            config['test_frequency'] = args.test_frequency
         else:
             config = from_config
     

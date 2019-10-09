@@ -24,9 +24,8 @@ class Seq2SeqModel(BaseModel):
         super(Seq2SeqModel, self).__init__(config=config, data_pl=data_pl, mode=mode, reuse=reuse, **kwargs)
         self.num_layers = self.config["cell_layers"]
         self.rnn_size = self.config["cell_size"]
-        self.architecture = self.config["architecture"]
         self.input_layer_size = self.config.get("input_hidden_layers", None)
-        self.joint_prediction_layer = config.get("joint_prediction_layer", None)  # plain, spl or spl_sparse
+        self.architecture = self.config["architecture"]
         self.autoregressive_input = config["autoregressive_input"]  # sampling_based or supervised
         self.states = None
         
@@ -192,3 +191,42 @@ class Seq2SeqModel(BaseModel):
         prediction = session.run(self.outputs, feed_dict={self.encoder_inputs: encoder_input,
                                                           self.decoder_inputs: decoder_input})
         return prediction
+
+    @classmethod
+    def get_model_config(cls, args, from_config=None):
+        """Given command-line arguments, creates the configuration dictionary.
+
+        It is later passed to the models and stored in the disk.
+        Args:
+            args: command-line argument object.
+            from_config: use an already existing config dictionary.
+        Returns:
+            experiment configuration (dict), experiment name (str)
+        """
+        config, experiment_name = super(Seq2SeqModel, cls).get_model_config(args, from_config)
+        
+        if from_config is None:
+            config["architecture"] = args.architecture
+            config["autoregressive_input"] = args.autoregressive_input
+    
+        experiment_name_format = "{}-{}_{}-{}_{}-{}_{}-b{}-in{}_out{}-{}_{}x{}-{}"
+        dec_input = ""
+        if config["autoregressive_input"] == "sampling_based":
+            dec_input = "sampling"
+        elif config["input_dropout_rate"] > 0:
+            dec_input = "dropout"
+        experiment_name = experiment_name_format.format(config["experiment_id"],
+                                                        args.model_type,
+                                                        dec_input,
+                                                        config["joint_prediction_layer"],
+                                                        config["output_hidden_size"],
+                                                        "h36m" if args.use_h36m else "amass",
+                                                        args.data_type,
+                                                        args.batch_size,
+                                                        args.source_seq_len,
+                                                        args.target_seq_len,
+                                                        config["cell_type"],
+                                                        config["cell_layers"],
+                                                        config["cell_size"],
+                                                        config["loss_type"])
+        return config, experiment_name

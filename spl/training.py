@@ -34,6 +34,8 @@ tf.app.flags.DEFINE_string("save_dir", None,
                            "Path to experiments. If not passed, then AMASS_EXPERIMENTS environment variable is used.")
 tf.app.flags.DEFINE_string("from_config", None,
                            "Path to an existing config.json to start a new experiment.")
+tf.app.flags.DEFINE_integer("print_frequency", 100, "Print/log every this many training steps.")
+tf.app.flags.DEFINE_integer("test_frequency", 1000, "Runs validation every this many training steps.")
 # If from_config is used, the rest will be ignored.
 # Data
 tf.app.flags.DEFINE_enum("data_type", "rotmat", ["rotmat", "aa", "quat"],
@@ -45,8 +47,6 @@ tf.app.flags.DEFINE_integer("target_seq_len", 24, "Number of frames that the dec
 tf.app.flags.DEFINE_integer("batch_size", 64, "Batch size to use during training.")
 # Training loop.
 tf.app.flags.DEFINE_integer("num_epochs", 500, "Training epochs.")
-tf.app.flags.DEFINE_integer("print_frequency", 100, "Print/log every this many training steps.")
-tf.app.flags.DEFINE_integer("test_frequency", 1000, "Runs validation every this many training steps.")
 tf.app.flags.DEFINE_boolean("exhaustive_validation", False, "Use entire validation samples (takes much longer).")
 tf.app.flags.DEFINE_integer("early_stopping_tolerance", 20, "# of waiting steps until the validation loss improves.")
 # Optimization.
@@ -56,7 +56,7 @@ tf.app.flags.DEFINE_integer("learning_rate_decay_steps", 1000, "Decay steps. See
 tf.app.flags.DEFINE_enum("optimizer", "adam", ["adam", "sgd"], "Optimization function type.")
 tf.app.flags.DEFINE_float("grad_clip_norm", 1.0, "Clip gradients to this norm. If 0, gradient clipping is not applied.")
 # Model
-tf.app.flags.DEFINE_enum("model_type", "rnn", ["rnn", "zero_velocity"], "Which model to use.")
+tf.app.flags.DEFINE_enum("model_type", "rnn", ["rnn", "seq2seq", "zero_velocity"], "Which model to use.")
 tf.app.flags.DEFINE_float("input_dropout_rate", 0.1, "Dropout rate on the inputs.")
 tf.app.flags.DEFINE_integer("input_hidden_layers", 1, "# of hidden layers directly on the inputs.")
 tf.app.flags.DEFINE_integer("input_hidden_size", 256, "Size of hidden layers directly on the inputs.")
@@ -72,6 +72,11 @@ tf.app.flags.DEFINE_integer("output_hidden_layers", 1, "# of hidden layers in th
 tf.app.flags.DEFINE_integer("output_hidden_size", 64, "Size of hidden layers in the prediction layer. It is not scaled "
                                                       "based on joint_prediction_layer. If it is `plain`, "
                                                       "then it is recommended to pass a larger value (i.e., 960)")
+# Only used by Seq2seq model.
+tf.app.flags.DEFINE_enum("architecture", "tied", ["tied", "basic"], "If tied, encoder and decoder use the same cell.")
+tf.app.flags.DEFINE_enum("autoregressive_input", "sampling_based", ["sampling_based", "supervised"],
+                         "If sampling_based, decoder is trained with its predictions. More robust.")
+
 args = tf.app.flags.FLAGS
 
 
@@ -245,12 +250,14 @@ def create_model(session):
     for v in tf.trainable_variables():
         n_params = np.prod(v.shape.as_list())
         num_param += n_params
-        print(v.name, v.shape.as_list())
+        # print(v.name, v.shape.as_list())
     print("# of parameters:", num_param)
     config["num_parameters"] = int(num_param)
 
-    json.dump(config, open(os.path.join(experiment_dir, 'config.json'), 'w'), indent=4, sort_keys=True)
+    if not os.path.exists(experiment_dir):
+        os.mkdir(experiment_dir)
     print("Experiment directory: " + experiment_dir)
+    json.dump(config, open(os.path.join(experiment_dir, 'config.json'), 'w'), indent=4, sort_keys=True)
 
     train_model.optimization_routines()
     train_model.summary_routines()
@@ -432,7 +439,7 @@ def train():
 
         while not stop_signal:
             # Training.
-            for i in range(config["test_frequency"]):
+            for i in range(args.test_frequency):
                 try:
                     start_time = time.perf_counter()
                     step += 1
@@ -442,9 +449,9 @@ def train():
                     train_loss += step_loss
 
                     time_counter += (time.perf_counter() - start_time)
-                    if step % config["print_frequency"] == 0:
-                        train_loss_avg = train_loss / config["print_frequency"]
-                        time_elapsed = time_counter/config["print_frequency"]
+                    if step % args.print_frequency == 0:
+                        train_loss_avg = train_loss / args.print_frequency
+                        time_elapsed = time_counter/args.print_frequency
                         train_loss, time_counter = 0., 0.
                         print("Train [{:04d}] \t Loss: {:.3f} \t time/batch: {:.3f}".format(step,
                                                                                             train_loss_avg,
@@ -493,7 +500,7 @@ def train():
                 num_steps_wo_improvement = 0
             else:
                 num_steps_wo_improvement += 1
-            if num_steps_wo_improvement == config.get("early_stopping_tolerance", -1):
+            if num_steps_wo_improvement == config.get("early_stopping_tolerance", 20):
                 stop_signal = True
 
             if valid_loss <= best_valid_loss:

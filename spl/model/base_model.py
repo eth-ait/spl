@@ -198,8 +198,8 @@ class BaseModel(object):
         global_step = tf.train.get_global_step(graph=None)
         learning_rate = tf.train.exponential_decay(self.config.get('learning_rate'),
                                                    global_step=global_step,
-                                                   decay_steps=self.config.get('learning_rate_decay_steps'),
-                                                   decay_rate=self.config.get('learning_rate_decay_rate'),
+                                                   decay_steps=self.config.get('learning_rate_decay_steps', 1000),
+                                                   decay_rate=self.config.get('learning_rate_decay_rate', 0.98),
                                                    staircase=True)
         if self.config["optimizer"] == C.OPTIMIZER_ADAM:
             optimizer = tf.train.AdamOptimizer(learning_rate)
@@ -261,8 +261,6 @@ class BaseModel(object):
             
             config['early_stopping_tolerance'] = args.early_stopping_tolerance
             config['num_epochs'] = args.num_epochs
-            config['print_frequency'] = args.print_frequency
-            config['test_frequency'] = args.test_frequency
             
             config['learning_rate'] = args.learning_rate
             config['learning_rate_decay_steps'] = args.learning_rate_decay_steps
