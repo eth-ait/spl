@@ -7,6 +7,7 @@ class Constants(object):
     # Model types.
     MODEL_ZERO_VEL = "zero_velocity"
     MODEL_RNN = "rnn"
+    MODEL_SEQ2SEQ = "seq2seq"
     
     # Pre-defined colors for plots.
     RGB_COLORS = [np.array((0, 13, 53)), np.array((0, 91, 149)), np.array((171, 19, 19)), np.array((254, 207, 103)),

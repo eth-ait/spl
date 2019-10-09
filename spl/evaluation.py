@@ -9,6 +9,7 @@ import tensorflow as tf
 from spl.data.amass_tf import TFRecordMotionDataset
 from spl.model.zero_velocity import ZeroVelocityBaseline
 from spl.model.rnn import RNN
+from spl.model.seq2seq import Seq2SeqModel
 
 from common.constants import Constants as C
 from visualization.render import Visualizer
@@ -35,6 +36,8 @@ def get_model_cls(model_type):
         return ZeroVelocityBaseline
     elif model_type == C.MODEL_RNN:
         return RNN
+    elif model_type == C.MODEL_SEQ2SEQ:
+        return Seq2SeqModel
     else:
         raise Exception("Unknown model type.")
 
@@ -242,8 +245,9 @@ if __name__ == '__main__':
                 _eval_dir = _experiment_dir if _args.eval_dir is None else _args.eval_dir
                 _test_model, _test_data = create_and_restore_model(sess, _experiment_dir, _data_dir, _config,
                                                                    _args.dynamic_test_split)
+                print("Evaluating Model " + str(model_id))
                 evaluate(sess, _test_model, _test_data, _args, _eval_dir, _config["use_h36m"])
                 
         except Exception as e:
-            print("something went wrong when evaluating model {}".format(model_id))
+            print("Something went wrong when evaluating model {}".format(model_id))
             raise Exception(e)

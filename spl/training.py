@@ -16,6 +16,7 @@ from spl.data.amass_tf import TFRecordMotionDataset
 from spl.data.srnn_tf import SRNNTFRecordMotionDataset
 from spl.model.zero_velocity import ZeroVelocityBaseline
 from spl.model.rnn import RNN
+from spl.model.seq2seq import Seq2SeqModel
 
 from visualization.fk import H36MForwardKinematics
 from visualization.fk import SMPLForwardKinematics
@@ -92,6 +93,8 @@ def get_model_cls(model_type):
         return ZeroVelocityBaseline
     elif model_type == C.MODEL_RNN:
         return RNN
+    elif model_type == C.MODEL_SEQ2SEQ:
+        return Seq2SeqModel
     else:
         raise Exception("Unknown model type.")
     
