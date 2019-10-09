@@ -160,14 +160,15 @@ class BaseModel(object):
         """
         if self.joint_prediction_layer == "plain":
             # Create a number of hidden layers and predict the full pose vector.
-            hidden_layers = self.config.get("output_hidden_layers", 0)
-            current_layer = inputs
-            for layer_idx in range(hidden_layers):
-                with tf.variable_scope('out_dense_all_' + str(layer_idx), reuse=self.reuse):
-                    current_layer = tf.layers.dense(inputs=current_layer, units=self.config["output_hidden_size"],
-                                                    activation=tf.nn.relu)
-            with tf.variable_scope('out_dense_all_' + str(hidden_layers), reuse=self.reuse):
-                pose_prediction = tf.layers.dense(inputs=current_layer, units=self.HUMAN_SIZE, activation=None)
+            with tf.variable_scope('output_layer', reuse=self.reuse):
+                hidden_layers = self.config.get("output_hidden_layers", 0)
+                current_layer = inputs
+                for layer_idx in range(hidden_layers):
+                    with tf.variable_scope('out_dense_all_' + str(layer_idx), reuse=self.reuse):
+                        current_layer = tf.layers.dense(inputs=current_layer, units=self.config["output_hidden_size"],
+                                                        activation=tf.nn.relu)
+                with tf.variable_scope('out_dense_all_' + str(hidden_layers), reuse=self.reuse):
+                    pose_prediction = tf.layers.dense(inputs=current_layer, units=self.HUMAN_SIZE, activation=None)
             
         else:
             # Predict the pose vector by composing a hierarchy of joint specific networks.
