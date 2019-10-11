@@ -274,7 +274,7 @@ if __name__ == '__main__':
     rep = "quat" if as_quat else "aa" if as_aa else "rotmat"
     train_data, train_one_hot, train_ids = load_data(h36m_folder, train_subjects, actions,
                                                      one_hot=True, rep=rep)
-    test_data, test_one_hot, test_ids = load_data(h36m_folder, train_subjects, actions,
+    test_data, test_one_hot, test_ids = load_data(h36m_folder, test_subjects, actions,
                                                   one_hot=True, rep=rep)
 
     tr_stats = process_split(train_data, train_one_hot, train_ids, os.path.join(output_folder, rep, "training"),
