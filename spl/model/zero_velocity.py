@@ -100,10 +100,10 @@ class ZeroVelocityBaseline(BaseModel):
         config["experiment_id"] = str(int(time.time()))
         experiment_name_format = "{}-{}-{}_{}-b{}-in{}_out{}"
         experiment_name = experiment_name_format.format(config["experiment_id"],
-                                                        args.model_type,
-                                                        "h36m" if args.use_h36m else "amass",
-                                                        args.data_type,
-                                                        args.batch_size,
-                                                        args.source_seq_len,
-                                                        args.target_seq_len)
+                                                        config["model_type"],
+                                                        "h36m" if config["use_h36m"] else "amass",
+                                                        config["data_type"],
+                                                        config["batch_size"],
+                                                        config["source_seq_len"],
+                                                        config["target_seq_len"])
         return config, experiment_name
