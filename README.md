@@ -1,5 +1,5 @@
 # Structured Prediction Helps 3D Human Motion Modelling 
-Code repository for [our paper](https://ait.ethz.ch/projects/2019/spl/) presented at ICCV '19. 
+Code repository for [our paper](https://ait.ethz.ch/spl) presented at ICCV '19. 
 
 We provide data preprocessing scripts, training pipeline, evaluation and visualization tools. Model implementation and pre-trained models will come soon. 
 
@@ -63,7 +63,7 @@ python spl/training.py --from_config <path-to-a-model-config.json>
 ``` 
 Due to the stochastic nature of training, you many not get exactly the same results. 
 However, you should get marginally better or worse models. If this is not the case, please contact us. 
-The models we used in the paper can be [downloaded from here](https://ait.ethz.ch/projects/2019/spl/downloads/spl_models.zip).
+The models we used in the paper can be [downloaded from here](https://files.ait.ethz.ch/projects/spl/spl_models.zip).
 You can run evaluation with them or visualize their results. Note that `QuaterNet` models are not there yet. 
 
 ### Sample scripts
